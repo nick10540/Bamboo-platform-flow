@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bamboo Supply Chain — ข้อมูลไหลอย่างไรในแต่ละบทบาท</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F8F3; --surface:#FFFFFF; --ink:#15231B; --muted:#56675D; --line:#D3DDD5;
+  --bamboo:#2F6B47; --culm:#8FAE4B; --knot:#1E4A30; --warn:#B3261E; --data:#1565C0; --notify:#2E7D32;
+  --code-bg:#EEF3EE; --shadow:0 1px 2px rgba(21,35,27,.08),0 4px 14px rgba(21,35,27,.06);
+  --r-F:#2E7D32; --r-P:#1565C0; --r-LD:#B7791F; --r-LAB:#7B1FA2; --r-FA:#D35400; --r-D:#A93226; --r-FIN:#455A64; --r-C:#00796B; --r-AD:#616161; --r-SYS:#3949AB; --hl:#E8A400; --hl-ink:#1B1B1B;
+  --lane-mix:6%;
+  color-scheme: light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1511; --surface:#16211A; --ink:#E4ECE6; --muted:#9DB0A4; --line:#2A3A30;
+    --bamboo:#6FB287; --culm:#9DBB5A; --knot:#0B2717; --warn:#F28B82; --data:#8AB4F8; --notify:#81C995;
+    --code-bg:#1E2B23; --shadow:0 1px 2px rgba(0,0,0,.4);
+    --r-F:#66BB6A; --r-P:#64B5F6; --r-LD:#E0B04A; --r-LAB:#BA68C8; --r-FA:#FF9F5A; --r-D:#EF7B6E; --r-FIN:#90A4AE; --r-C:#4DB6AC; --r-AD:#BDBDBD; --r-SYS:#9FA8DA; --hl:#FFC94D; --hl-ink:#1B1B1B;
+    --lane-mix:12%; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1511; --surface:#16211A; --ink:#E4ECE6; --muted:#9DB0A4; --line:#2A3A30;
+  --bamboo:#6FB287; --culm:#9DBB5A; --knot:#0B2717; --warn:#F28B82; --data:#8AB4F8; --notify:#81C995;
+  --code-bg:#1E2B23; --shadow:0 1px 2px rgba(0,0,0,.4);
+  --r-F:#66BB6A; --r-P:#64B5F6; --r-LD:#E0B04A; --r-LAB:#BA68C8; --r-FA:#FF9F5A; --r-D:#EF7B6E; --r-FIN:#90A4AE; --r-C:#4DB6AC; --r-AD:#BDBDBD; --r-SYS:#9FA8DA; --hl:#FFC94D; --hl-ink:#1B1B1B;
+  --lane-mix:12%; color-scheme: dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans Thai","Sarabun","Noto Sans Thai","Leelawadee UI",Tahoma,sans-serif;font-size:15px;line-height:1.55}
+code,.code{font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;font-size:12px}
+a{color:var(--bamboo)}
+:focus-visible{outline:3px solid var(--culm);outline-offset:2px}
+
+/* ---------- header ---------- */
+.top{padding:28px clamp(16px,4vw,48px) 10px;max-width:1500px}
+.top h1{font-size:clamp(24px,3.2vw,36px);line-height:1.2;margin:0 0 8px;font-weight:700;letter-spacing:-.01em}
+.top p{margin:0;color:var(--muted);max-width:75ch}
+.src{margin-top:10px;font-size:13px;color:var(--muted)}
+
+/* bamboo tabs: segments of a culm */
+.culm-tabs{display:flex;margin:22px clamp(16px,4vw,48px) 0;max-width:1100px;border-radius:999px;overflow:hidden;
+  background:var(--knot);padding:3px;gap:3px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.culm-tabs::-webkit-scrollbar{display:none}
+.culm-tabs button{flex:1 0 auto;white-space:nowrap;border:0;background:color-mix(in srgb,var(--culm) 22%,var(--surface));color:var(--ink);
+  font:inherit;font-weight:600;font-size:14px;padding:10px 14px;cursor:pointer;border-radius:4px;min-height:44px}
+.culm-tabs button:first-child{border-radius:999px 4px 4px 999px}
+.culm-tabs button:last-child{border-radius:4px 999px 999px 4px}
+.culm-tabs button[aria-selected="true"]{background:var(--bamboo);color:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .culm-tabs button[aria-selected="true"]{color:#0E1511}}
+:root[data-theme="dark"] .culm-tabs button[aria-selected="true"]{color:#0E1511}
+
+/* ---------- toolbar ---------- */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:16px clamp(16px,4vw,48px) 8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:5px 12px;font:inherit;font-size:13px;cursor:pointer;min-height:34px;display:inline-flex;align-items:center;gap:6px}
+.chip i{width:10px;height:10px;border-radius:50%;background:var(--c);display:inline-block}
+.chip[aria-pressed="true"]{border-color:var(--c,var(--bamboo));background:color-mix(in srgb,var(--c,var(--bamboo)) 14%,var(--surface))}
+.toggles{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.toggles label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.toggles input{accent-color:var(--bamboo);width:16px;height:16px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--muted);padding:0 clamp(16px,4vw,48px) 12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend svg{flex:none}
+
+/* ---------- diagram ---------- */
+.stage{margin:0 clamp(8px,2vw,32px);border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:auto;max-height:calc(100vh - 120px);position:relative}
+.grid{position:relative;display:grid;min-width:max-content;padding:0 16px 16px 0}
+.phase{position:sticky;top:0;z-index:6;height:40px;display:flex;align-items:center;justify-content:center;
+  background:var(--bamboo);color:#fff;font-weight:600;font-size:13.5px;margin:10px 0 10px;border-radius:3px;position:relative}
+.phase + .phase{margin-left:0}
+.phase::after{content:"";position:absolute;right:-5px;top:-4px;bottom:-4px;width:8px;background:var(--knot);border-radius:3px;z-index:1}
+.phase.last::after{display:none}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .phase{color:#0E1511}}
+:root[data-theme="dark"] .phase{color:#0E1511}
+.corner{position:sticky;left:0;top:0;z-index:8;background:var(--surface)}
+.lane-bg{background:color-mix(in srgb,var(--c) var(--lane-mix),var(--surface));border-top:1px solid color-mix(in srgb,var(--c) 30%,transparent);z-index:0}
+.lane-label{position:sticky;left:0;z-index:7;background:var(--c);color:#fff;font-weight:600;font-size:13px;line-height:1.35;
+  display:flex;align-items:center;padding:10px 12px;border-top:1px solid rgba(255,255,255,.25)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .lane-label{color:#0E1511}}
+:root[data-theme="dark"] .lane-label{color:#0E1511}
+.lane-label small{display:block;font-weight:500;opacity:.85;font-size:11.5px}
+svg.wires{position:absolute;left:0;top:0;pointer-events:none;z-index:2;overflow:visible}
+.node{z-index:3;align-self:center;justify-self:center;width:calc(100% - 22px);margin:12px 0;text-align:left;
+  background:var(--surface);color:var(--ink);border:1.5px solid color-mix(in srgb,var(--c) 55%,var(--line));border-left:5px solid var(--c);
+  border-radius:10px;padding:9px 11px 10px;font:inherit;cursor:pointer;box-shadow:var(--shadow);transition:opacity .15s, transform .15s}
+.node:hover{transform:translateY(-1px)}
+.node b{display:block;font-size:13.5px;line-height:1.35;font-weight:600}
+.node .st{display:block;font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
+.node .tb{display:block;margin-top:6px;font-size:11px;color:var(--bamboo);background:var(--code-bg);border-radius:5px;padding:3px 6px;line-height:1.45;word-break:break-word}
+.node .kpi{display:inline-block;margin-top:6px;font-size:11.5px;color:var(--warn);font-weight:500}
+.node.link{border-style:dashed;border-left-style:dashed;background:color-mix(in srgb,var(--culm) 12%,var(--surface))}
+.node.ext{box-shadow:inset 6px 0 0 -3px var(--c),inset -6px 0 0 -3px var(--c),var(--shadow);border-left-width:1.5px;border-right:5px double var(--c)}
+.node.decision{width:176px;height:124px;border:0;padding:0 34px;display:grid;place-items:center;text-align:center;
+  background:transparent;box-shadow:none;position:relative}
+.node.decision::before{content:"";position:absolute;inset:4px 30px;transform:rotate(45deg) scale(.8);border:2px solid var(--c);background:var(--surface);border-radius:8px;z-index:-1}
+.node.decision b{font-size:12.5px;line-height:1.3}
+.hide-tables .node .tb{display:none}
+.hide-status .node .st{display:none}
+.dim .node:not(.on){opacity:.18}
+.dim svg.wires .w:not(.on){opacity:.08}
+.node.sel{outline:3px solid var(--culm);outline-offset:2px}
+svg.wires path{fill:none}
+svg.wires .lbl{font-size:11px;font-family:inherit;paint-order:stroke;stroke:var(--surface);stroke-width:5px;stroke-linejoin:round}
+.hide-labels svg.wires .lbl{display:none}
+
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin:14px clamp(8px,2vw,32px) 0}
+.note{border:1px solid var(--line);border-left:4px solid var(--culm);background:var(--surface);border-radius:8px;padding:12px 14px;font-size:13.5px}
+.note b:first-child{display:block;margin-bottom:4px}
+
+/* ---------- issues ---------- */
+.issues{max-width:1100px;margin:6px clamp(16px,4vw,48px) 0}
+.issues h2{font-size:19px;margin:26px 0 10px}
+.issue{border-top:1px solid var(--line);padding:14px 0 14px 18px;position:relative}
+.issue::before{content:"";position:absolute;left:0;top:18px;bottom:18px;width:4px;border-radius:2px;background:var(--k)}
+.issue h3{font-size:15.5px;margin:0 0 4px}
+.issue div{color:var(--muted);font-size:14px;max-width:95ch}
+
+/* ---------- drawer ---------- */
+.drawer{position:fixed;z-index:30;top:0;right:0;height:100%;width:min(420px,100%);background:var(--surface);border-left:1px solid var(--line);
+  box-shadow:-8px 0 30px rgba(0,0,0,.12);transform:translateX(105%);transition:transform .22s ease;display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.drawer.open{transform:none}
+.drawer header{display:flex;align-items:flex-start;gap:10px;padding:18px 18px 10px;border-bottom:1px solid var(--line)}
+.drawer header h2{margin:4px 0 0;font-size:18px;line-height:1.35}
+.drawer .role{display:inline-block;font-size:12px;font-weight:600;color:#fff;background:var(--c);border-radius:999px;padding:2px 10px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .drawer .role{color:#0E1511}}
+:root[data-theme="dark"] .drawer .role{color:#0E1511}
+.drawer .x{margin-left:auto;border:0;background:transparent;color:var(--ink);font-size:24px;cursor:pointer;width:44px;height:44px;border-radius:8px}
+.drawer .body{padding:6px 18px 24px;overflow:auto}
+.drawer h4{font-size:13px;color:var(--muted);margin:18px 0 6px;font-weight:600}
+.steps{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.steps span{background:color-mix(in srgb,var(--c) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--c) 40%,transparent);border-radius:6px;padding:3px 8px;font-size:13px}
+.steps em{color:var(--muted);font-style:normal}
+.tbls{display:flex;flex-wrap:wrap;gap:6px}
+.tbls code{background:var(--code-bg);color:var(--bamboo);padding:3px 7px;border-radius:5px}
+.flowlist{list-style:none;padding:0;margin:0}
+.flowlist li{margin:0 0 6px}
+.flowlist button{font:inherit;font-size:13.5px;text-align:left;background:transparent;border:1px solid var(--line);border-radius:8px;padding:7px 10px;width:100%;cursor:pointer;color:var(--ink)}
+.flowlist button small{display:block;color:var(--muted);font-size:12px}
+.kpibox{color:var(--warn);font-weight:500}
+.caveat{font-size:12.5px;color:var(--muted);margin-top:18px;border-top:1px dashed var(--line);padding-top:10px}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:25;display:none}
+.scrim.open{display:block}
+@media (max-width:640px){
+  .culm-tabs{border-radius:12px;margin-left:12px;margin-right:12px}
+  .culm-tabs button:first-child{border-radius:10px 4px 4px 10px}
+  .culm-tabs button:last-child{border-radius:4px 10px 10px 4px}
+  .drawer{top:auto;bottom:0;height:78%;width:100%;border-left:0;border-top:1px solid var(--line);border-radius:16px 16px 0 0;transform:translateY(105%)}
+  .drawer.open{transform:none}
+  .stage{max-height:none}
+}
+.foot{padding:26px clamp(16px,4vw,48px) 40px;color:var(--muted);font-size:12.5px;max-width:95ch}
+.hint{font-size:12.5px;color:var(--muted);padding:0 clamp(16px,4vw,48px) 8px}
+/* ---------- To-Be tags ---------- */
+.node{position:relative}
+.node .badge{position:absolute;top:-10px;right:10px;font-size:11px;font-weight:600;border-radius:999px;padding:1px 9px;line-height:1.6}
+.node.tag-new{box-shadow:0 0 0 3px var(--hl),var(--shadow)}
+.node.tag-new .badge{background:var(--hl);color:var(--hl-ink)}
+.node.tag-changed{outline:2px dashed var(--hl);outline-offset:3px}
+.node.tag-changed .badge{background:var(--surface);color:var(--ink);border:1.5px solid var(--hl)}
+.node.tag-removed{background:repeating-linear-gradient(135deg,var(--surface) 0 8px,color-mix(in srgb,var(--muted) 10%,var(--surface)) 8px 16px);
+  border-style:dashed;border-color:var(--muted);box-shadow:none;opacity:.7}
+.node.tag-removed b{text-decoration:line-through;text-decoration-color:var(--warn);text-decoration-thickness:2px}
+.node.tag-removed .badge{background:var(--muted);color:var(--surface)}
+.node .nr{display:inline-block;margin:6px 4px 0 0;font-size:10.5px;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 5px}
+.hide-removed .node.tag-removed{visibility:hidden}
+.node.sel{outline:3px solid var(--culm)!important;outline-offset:2px}
+.chip.nrchip{border-style:dashed}
+.chip.nrchip[aria-pressed="true"]{border-style:solid;border-color:var(--hl);background:color-mix(in srgb,var(--hl) 22%,var(--surface))}
+.taglegend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12.5px;color:var(--muted)}
+.taglegend span{display:inline-flex;align-items:center;gap:6px}
+.taglegend i{display:inline-block;width:26px;height:14px;border-radius:4px;background:var(--surface);border:1.5px solid var(--line)}
+.taglegend i.n{box-shadow:0 0 0 2px var(--hl);border-color:transparent}
+.taglegend i.c{outline:2px dashed var(--hl);outline-offset:1px}
+.taglegend i.r{border-style:dashed;background:repeating-linear-gradient(135deg,var(--surface) 0 4px,color-mix(in srgb,var(--muted) 20%,var(--surface)) 4px 8px)}
+
+.pmo{max-width:1180px;margin:0 clamp(16px,4vw,48px)}
+.pmo h2{font-size:22px;margin:26px 0 6px;line-height:1.3}
+.pmo .lede{color:var(--muted);margin:0 0 14px;max-width:80ch}
+.nrgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:0;border-top:2px solid var(--ink)}
+.nrsum{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;border-bottom:1px solid var(--line);padding:14px 16px 14px 0;cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;text-align:left;font:inherit;color:inherit}
+.nrsum:hover h3{text-decoration:underline}
+.nrsum .code{font-weight:700;color:var(--ink);font-family:inherit;font-size:13px;display:inline-block;background:var(--hl);color:var(--hl-ink);padding:0 7px;border-radius:4px}
+.nrsum h3{font-size:16px;margin:6px 0 4px;line-height:1.35}
+.nrsum q{display:block;color:var(--muted);font-size:13px;quotes:"“" "”"}
+.nrsum .cnt{display:block;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.nrsum[aria-pressed="true"] h3{color:var(--bamboo)}
+.spec{border-top:1px solid var(--line);padding:22px 0 8px}
+.spec > header{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.spec > header .code{font-weight:700;background:var(--hl);color:var(--hl-ink);padding:0 8px;border-radius:4px;font-size:14px}
+.spec > header h3{font-size:19px;margin:0}
+.spec .pmoq{margin:8px 0 14px;padding:8px 14px;border-left:3px solid var(--hl);background:color-mix(in srgb,var(--hl) 9%,var(--surface));font-size:14px}
+.spec dl{display:grid;grid-template-columns:minmax(150px,200px) 1fr;gap:10px 22px;margin:0}
+.spec dt{font-weight:600;font-size:14px;color:var(--ink)}
+.spec dd{margin:0;font-size:14px;color:var(--ink);max-width:85ch}
+.spec dd ul{margin:0;padding-left:18px}
+.spec dd li{margin:2px 0}
+.spec code{background:var(--code-bg);color:var(--bamboo);padding:1px 5px;border-radius:4px}
+@media (max-width:640px){.spec dl{grid-template-columns:1fr}.spec dt{margin-top:6px}}
+.formula{font-size:16px;line-height:1.9;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:6px 0 10px;overflow-x:auto}
+.formula var{font-style:normal;font-weight:600;color:var(--bamboo)}
+.calc{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0 4px}
+.calc h4{margin:0 0 4px;font-size:16px}
+.calc .warn{font-size:12.5px;color:var(--warn);margin:0 0 12px}
+.calc .ins{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 16px;align-items:end}
+.calc label{display:flex;flex-direction:column;font-size:12.5px;color:var(--muted);gap:3px}
+.calc input{font:inherit;font-size:15px;padding:7px 9px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-height:40px}
+.calc .out{display:flex;flex-wrap:wrap;gap:8px 28px;margin:16px 0 10px;align-items:baseline}
+.calc .out div{font-size:13px;color:var(--muted)}
+.calc .out b{display:block;font-size:22px;color:var(--ink);font-variant-numeric:tabular-nums}
+.calc .tw{overflow-x:auto}
+.calc table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums;min-width:640px}
+.calc th,.calc td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.calc th:first-child,.calc td:first-child{text-align:left}
+.calc thead th{color:var(--muted);font-weight:600}
+.impact{margin:8px 0 0;padding-left:18px}
+.impact li{margin:4px 0}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>ข้อมูลไหลอย่างไรใน Bamboo Supply Chain</h1>
+  <p>แผนผังงานแยกตามบทบาท ตั้งแต่เกษตรกรสมัครเข้าร่วมโครงการ จนถึงวันที่ได้รับเงินค่าไผ่ ใช้ประกอบการคุยกับ Owner ว่าข้อมูลแต่ละชิ้นเกิดที่ไหน ใครเป็นคนบันทึก และส่งต่อไปที่ใคร</p>
+  <div class="src">อ้างอิง: คู่มือการใช้งานสำหรับเจ้าหน้าที่ V1.0 (18.09.2569) และ ER diagram ของระบบ · ชื่อตารางเป็นการจับคู่จากชื่อและความสัมพันธ์ใน ER ควรให้ทีม dev ยืนยัน</div>
+</header>
+
+<nav class="culm-tabs" role="tablist" aria-label="เลือกมุมมอง" id="tabs"></nav>
+
+<section id="pmoTop" class="pmo" hidden></section>
+<section id="diagramView">
+  <div class="toolbar">
+    <div class="chips" id="roleChips" aria-label="กรองตามบทบาท"></div>
+    <div class="toggles">
+      <label><input type="checkbox" id="tStatus" checked> สถานะ</label>
+      <label><input type="checkbox" id="tTables" checked> ตาราง DB</label>
+      <label><input type="checkbox" id="tLabels" checked> ป้ายบนเส้น</label>
+      <label id="tRemovedWrap" hidden><input type="checkbox" id="tRemoved" checked> ขั้นที่ตัดออก</label>
+    </div>
+  </div>
+  <div class="legend" aria-label="คำอธิบายเส้น">
+    <span><svg width="34" height="10"><line x1="0" y1="5" x2="28" y2="5" stroke="currentColor" stroke-width="2"/><path d="M26 1 L33 5 L26 9 Z" fill="currentColor"/></svg>ลำดับงานหลัก</span>
+    <span style="color:var(--data)"><svg width="34" height="10"><line x1="0" y1="5" x2="30" y2="5" stroke="currentColor" stroke-width="2" stroke-dasharray="2 4"/></svg>ส่งต่อข้อมูลให้บทบาทอื่นใช้</span>
+    <span style="color:var(--notify)"><svg width="34" height="10"><line x1="0" y1="5" x2="30" y2="5" stroke="currentColor" stroke-width="2" stroke-dasharray="6 4"/></svg>แจ้งเตือน</span>
+    <span style="color:var(--warn)"><svg width="34" height="10"><line x1="0" y1="5" x2="30" y2="5" stroke="currentColor" stroke-width="2" stroke-dasharray="6 4"/></svg>ไม่ผ่าน / ส่งกลับแก้ไข</span>
+    <span>📊 จุดที่ Executive Dashboard ดึงข้อมูล</span>
+  </div>
+  <div class="hint">กดกล่องเพื่อดูสถานะ ตาราง และงานที่รับเข้า/ส่งต่อ · กดชื่อบทบาทด้านบนเพื่อไฮไลต์เฉพาะบทบาทนั้น</div>
+  <div class="stage" id="stage"><div class="grid" id="grid"></div></div>
+  <div class="notes" id="notes"></div>
+</section>
+
+<section id="pmoBottom" class="pmo" hidden></section>
+<section id="issuesView" hidden>
+  <div class="issues" id="issues"></div>
+</section>
+
+<div class="foot">จัดทำโดย Precise Digital Economy Co., Ltd. · ไฟล์ draw.io ฉบับแก้ไขได้อยู่คู่กับหน้านี้ · ฝั่งเกษตรกรสรุปจากส่วนที่คู่มือเจ้าหน้าที่อ้างถึง (ยังไม่ได้ใช้คู่มือเกษตรกรชุดที่ 4)</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-labelledby="dTitle" role="dialog">
+  <header><div><span class="role" id="dRole"></span><h2 id="dTitle"></h2></div><button class="x" id="dClose" aria-label="ปิด">×</button></header>
+  <div class="body" id="dBody"></div>
+</aside>
+
+<script>
+const MODEL = [{"name": "1-ภาพรวม End-to-End", "title": "Bamboo Supply Chain — ข้อมูลไหลอย่างไรในแต่ละบทบาท (ภาพรวม 6 เฟส)  |  อ้างอิงคู่มือเจ้าหน้าที่ V1.0 (18.09.2569)", "lanes": ["F", "P", "LD", "LAB", "FA", "D", "FIN", "C", "AD"], "ncols": 6, "phases": [[0, 1, "① สมัคร & คัดเลือก"], [1, 2, "② วางแผน & สัญญา"], [2, 3, "③ เตรียมแปลง & ลงปลูก"], [3, 4, "④ ดูแล & ติดตาม"], [4, 5, "⑤ เก็บเกี่ยว & ขนส่ง"], [5, 6, "⑥ รับซื้อ & จ่ายเงิน"]], "nodes": [{"id": "f1", "lane": "F", "col": 0, "title": "สมัครเข้าร่วมโครงการ", "status": "กรอกข้อมูลแปลง + แนบบัตร/โฉนด", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "f2", "lane": "F", "col": 1, "title": "ยืนยันแบบแผนแปลง + จองคิวทำสัญญา", "status": "อนุมัติ / ไม่อนุมัติแบบแปลง", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "f3", "lane": "F", "col": 2, "title": "ขุดหลุม/ระบบน้ำ → จองรับกล้า → ลงปลูก", "status": "ส่งบันทึก → รอนักส่งเสริมตรวจ", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "f4", "lane": "F", "col": 3, "title": "บันทึกกิจกรรมประจำวัน", "status": "ทำตามแผน + เพิ่มกิจกรรมเอง", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "f5", "lane": "F", "col": 4, "title": "จองคิวตัดไผ่ (ขายผลผลิต)", "status": "ต้องจองล่วงหน้า ≥ 1 วัน", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "f6", "lane": "F", "col": 5, "title": "ได้รับเงินโอน", "status": "สถานะจาก PSL", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "p1", "lane": "P", "col": 0, "title": "อนุมัติคำขอ + ตรวจสอบพื้นที่", "status": "เลือกนักส่งเสริมผู้ดูแล / ผ่าน-ไม่ผ่าน", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "p2", "lane": "P", "col": 1, "title": "ออกแบบแผนแปลง + QR หลุม → ทำสัญญา", "status": "สัญญาซื้อขายผลผลิตไผ่ล่วงหน้า", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "p3", "lane": "P", "col": 2, "title": "ตรวจงานเตรียมแปลง / ออกใบเบิกกล้า / ตรวจลงปลูก", "status": "ลำดับบังคับ: ต้องผ่านก่อนไปขั้นถัดไป", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "p4", "lane": "P", "col": 3, "title": "ออกแบบกิจกรรม → ติดตามผล → ส่งรายงานผลแจ้งโรงงาน", "status": "คะแนน + เกรดก่อนตัด", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "p5", "lane": "P", "col": 4, "title": "อนุมัติคิวตัดที่เกษตรกรจอง", "status": "ส่งต่อเข้าเมนูวางคิวของโรงงาน", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "ld1", "lane": "LD", "col": 0, "title": "ตรวจดิน กายภาพ/เคมี → เกรด A–D", "status": "เฉพาะแปลงที่ผ่านตรวจพื้นที่", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "ld2", "lane": "LD", "col": 3, "title": "ติดตามผลดินรอบถัดไป", "status": "นัดติดตามจากผลตรวจครั้งก่อน", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "lab1", "lane": "LAB", "col": 1, "title": "ขยายพันธุ์ 7 ขั้น → คลังต้นไม้", "status": "รหัสต้นกล้า → ผูก QR หลุมในแผนแปลง", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "fa1", "lane": "FA", "col": 2, "title": "รับกล้าพันธุ์ → วางคิว → นัดรอบส่งกล้า", "status": "ลงนามผู้จ่ายในใบเบิก / Invoice หลังปลูก", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "fa2", "lane": "FA", "col": 4, "title": "คัดแยกแปลง → วางคิว → นัดหมายรอบขนส่ง", "status": "เกรด A–D + ผูกคนขับ/จุดเช็คอิน", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "fa3", "lane": "FA", "col": 5, "title": "QC 7 ข้อ → ชั่งน้ำหนัก → ประเมินราคา → ส่งการเงิน", "status": "ต้องมีเลขบัญชีเกษตรกรก่อนส่ง", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "d1", "lane": "D", "col": 2, "title": "ส่งกล้าถึงแปลง", "status": "ลายเซ็นผู้รับ", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "d2", "lane": "D", "col": 4, "title": "ขนส่งตัดไผ่ Check-in / Check-out", "status": "รายแปลงตามลำดับเส้นทาง + น้ำหนัก", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "fin1", "lane": "FIN", "col": 5, "title": "ตรวจสอบ → รอโอน → โอนเรียบร้อย", "status": "โรงงานดูสถานะได้อย่างเดียว", "tables": null, "kpi": null, "kind": "ext", "span": 1}, {"id": "c1", "lane": "C", "col": 1, "title": "รายการเครดิต / PDD (T-VER)", "status": "จากแปลงที่ทำสัญญาแล้ว", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "c2", "lane": "C", "col": 3, "title": "ข้อมูลสิ่งแวดล้อม + คลังความรู้/หลักสูตรชุมชน", "status": "PM2.5, ปุ๋ย/น้ำ, ใบอนุญาต", "tables": null, "kpi": null, "kind": "task", "span": 1}, {"id": "ad1", "lane": "AD", "col": 0, "title": "ผู้ใช้ / สิทธิ์ / บทบาท / โรงงาน", "status": "กำหนดระดับสิทธิ์นักส่งเสริม + ทีม RA/RB", "tables": null, "kpi": null, "kind": "task", "span": 2}, {"id": "ad2", "lane": "AD", "col": 3, "title": "ข้อมูลอ้างอิง / สายพันธุ์ / ประกาศ", "status": "ตั้งค่าระบบทั้งหมด", "tables": null, "kpi": null, "kind": "task", "span": 2}], "edges": [{"a": "f1", "b": "p1", "text": "คำขอ", "kind": "main"}, {"a": "p1", "b": "p2", "text": "ผ่านตรวจพื้นที่", "kind": "main"}, {"a": "p2", "b": "f2", "text": "LINE: ส่งแบบแปลง", "kind": "main"}, {"a": "f2", "b": "p2", "text": "ยืนยัน", "kind": "main"}, {"a": "p2", "b": "p3", "text": "มีเลขที่สัญญา", "kind": "main"}, {"a": "f3", "b": "p3", "text": "ส่งงาน", "kind": "main"}, {"a": "p3", "b": "fa1", "text": "ใบเบิกกล้า", "kind": "main"}, {"a": "fa1", "b": "d1", "text": "รอบส่งกล้า", "kind": "main"}, {"a": "d1", "b": "f3", "text": "ส่งกล้า", "kind": "main"}, {"a": "p3", "b": "p4", "text": "ลงปลูกผ่าน", "kind": "main"}, {"a": "p4", "b": "f4", "text": "แผนกิจกรรม", "kind": "main"}, {"a": "p4", "b": "fa2", "text": "รายงานผลก่อนตัด", "kind": "main"}, {"a": "f5", "b": "p5", "text": "คิวตัด", "kind": "main"}, {"a": "p5", "b": "fa2", "text": "อนุมัติแล้ว", "kind": "main"}, {"a": "fa2", "b": "d2", "text": "รอบขนส่ง", "kind": "main"}, {"a": "d2", "b": "fa3", "text": "ขนส่งสำเร็จ", "kind": "main"}, {"a": "fa3", "b": "fin1", "text": "ส่งข้อมูลการเงิน", "kind": "main"}, {"a": "fin1", "b": "f6", "text": "โอนเงิน", "kind": "main"}, {"a": "p1", "b": "ld1", "text": "แปลงผ่านตรวจ", "kind": "data"}, {"a": "lab1", "b": "p2", "text": "รหัสต้น → QR", "kind": "data"}, {"a": "p2", "b": "c1", "text": "แปลงมีสัญญา", "kind": "data"}, {"a": "f4", "b": "p4", "text": "แจ้งเตือนนักส่งเสริม", "kind": "notify"}], "notes": []}, {"name": "2-ต้นน้ำ สมัคร→ดูแลแปลง", "title": "ต้นน้ำ: สมัครเข้าร่วม → ตรวจแปลง → สัญญา → เตรียมแปลง → ลงปลูก → ดูแล  (สถานะตามคู่มือ + ตารางใน DB)", "lanes": ["F", "P", "LD", "LAB", "FA", "D", "C"], "ncols": 14, "phases": [[0, 3, "สมัคร & คัดเลือก"], [3, 6, "วางแผน & สัญญา"], [6, 12, "เตรียมแปลง → รับกล้า → ลงปลูก"], [12, 14, "ดูแล & ติดตาม"]], "nodes": [{"id": "f1", "lane": "F", "col": 0, "title": "สมัครเข้าร่วมโครงการ", "status": "ข้อมูลแปลง + บัตร ปชช. + เอกสารสิทธิ์", "tables": "registrations · land_plot · land_plot_documents", "kpi": null, "kind": "task", "span": 1}, {"id": "p1", "lane": "P", "col": 1, "title": "2.3 อนุมัติคำขอ + เลือกผู้ดูแล", "status": "รออนุมัติ → อนุมัติ / ไม่อนุมัติ", "tables": "registrations · farmer_promoter_assignment", "kpi": null, "kind": "task", "span": 1}, {"id": "p2", "lane": "P", "col": 2, "title": "2.5 ตรวจสอบพื้นที่", "status": "แบบร่าง → รอตรวจสอบ → ผ่าน / ไม่ผ่าน", "tables": "plot_inspections · site_inspection", "kpi": null, "kind": "task", "span": 1}, {"id": "ld1", "lane": "LD", "col": 2, "title": "4.3 ตรวจดิน → ประมวลผลเกรด A–D", "status": "รอตรวจสอบ (ร่าง) → ตรวจสอบแล้ว", "tables": "soil_analysis · land_dev_score_settings", "kpi": null, "kind": "task", "span": 1}, {"id": "p3", "lane": "P", "col": 3, "title": "2.6 ออกแบบแผนแปลง + QR หลุม", "status": "รอออกแบบ → แบบร่าง → รออนุมัติแบบแปลง", "tables": "plot_plans · plot_plant_registry", "kpi": null, "kind": "task", "span": 1}, {"id": "lab1", "lane": "LAB", "col": 3, "title": "6.9–6.10 ขยายพันธุ์ 7 ขั้น → คลังต้นไม้", "status": "รอนำไปปลูก → ปลูกแล้ว / ยุติ", "tables": "pn_batches · pn_stage_lots", "kpi": null, "kind": "task", "span": 1}, {"id": "f2", "lane": "F", "col": 4, "title": "ยืนยันแบบแผนแปลง (LINE)", "status": "อนุมัติแบบแปลง / ไม่อนุมัติ", "tables": "plot_plans", "kpi": null, "kind": "task", "span": 1}, {"id": "f3", "lane": "F", "col": 5, "title": "จองคิวทำสัญญา", "status": "จองล่วงหน้า ≥ 1 วัน", "tables": "queue_system (?)", "kpi": null, "kind": "task", "span": 1}, {"id": "p4", "lane": "P", "col": 5, "title": "2.7 ทำสัญญา (กรอก / อัปโหลด)", "status": "รอดำเนินการ → แบบร่าง → ทำสัญญาเรียบร้อย / ยกเลิก", "tables": "plot_contract_entries · plot_contracts", "kpi": null, "kind": "task", "span": 1}, {"id": "c1", "lane": "C", "col": 5, "title": "5.4 รายการเครดิต → PDD", "status": "แปลงที่ลงนามแล้ว", "tables": "carbon_credit_list_items · carbon_credit_documents", "kpi": null, "kind": "task", "span": 1}, {"id": "f4", "lane": "F", "col": 6, "title": "ขุดหลุม + เตรียมระบบน้ำ", "status": "ส่งบันทึก → รอตรวจ", "tables": "plot_hole_preparations · plot_water_preparations", "kpi": null, "kind": "task", "span": 1}, {"id": "p5", "lane": "P", "col": 7, "title": "2.9 ตรวจงานเตรียมแปลง", "status": "ผ่าน / ไม่ผ่าน (รายรอบ)", "tables": "plot_preparation_reviews", "kpi": null, "kind": "task", "span": 1}, {"id": "f5", "lane": "F", "col": 7, "title": "จองคิวรับกล้าพันธุ์ + ลงนามผู้เบิก", "status": "รอนักส่งเสริมอนุมัติ", "tables": "queue_system", "kpi": null, "kind": "task", "span": 1}, {"id": "p6", "lane": "P", "col": 8, "title": "2.12 อนุมัติคิวรับกล้า + ใบเบิกกล้าไผ่", "status": "รออนุมัติ → รอดำเนินการ", "tables": "queue_system (requisition)", "kpi": null, "kind": "task", "span": 1}, {"id": "fa1", "lane": "FA", "col": 8, "title": "3.5 รับกล้าพันธุ์: ลงนามผู้จ่าย", "status": "รอตรวจสอบ → อนุมัติ (วางคิว) / ไม่อนุมัติ", "tables": "factory_cutting_queue", "kpi": null, "kind": "task", "span": 1}, {"id": "fa2", "lane": "FA", "col": 9, "title": "3.6–3.7 วางคิว + นัดรอบส่งกล้า", "status": "รอวางคิว → วางคิว → รอขนส่ง", "tables": "factory_cutting_transport_appointment", "kpi": null, "kind": "task", "span": 1}, {"id": "d1", "lane": "D", "col": 10, "title": "3.8 ส่งกล้าถึงแปลง", "status": "Check-in → กรอกชื่อ + ลายเซ็นผู้รับ → Check-out", "tables": "..._appointment_item (ส่งกล้า)", "kpi": null, "kind": "task", "span": 1}, {"id": "f6", "lane": "F", "col": 11, "title": "ลงปลูก (บันทึก)", "status": "ส่งบันทึก → รอตรวจ", "tables": "plot_planting_records", "kpi": null, "kind": "task", "span": 1}, {"id": "p7", "lane": "P", "col": 11, "title": "2.9 ตรวจลงปลูก", "status": "ผ่าน / ไม่ผ่าน (% ความคืบหน้า)", "tables": "plot_planting_records", "kpi": null, "kind": "task", "span": 1}, {"id": "fa3", "lane": "FA", "col": 11, "title": "3.13 Invoice / ใบนำส่งต้นกล้า", "status": "รอทำอินวอย", "tables": "plot_planting_records (invoice_*)", "kpi": null, "kind": "task", "span": 1}, {"id": "p8", "lane": "P", "col": 12, "title": "2.10 ออกแบบกิจกรรมประจำวัน", "status": "กำหนดกิจกรรมให้เกษตรกร", "tables": "plot_daily_activity_designs · _schedule_items", "kpi": null, "kind": "task", "span": 1}, {"id": "f7", "lane": "F", "col": 12, "title": "บันทึกประจำวัน + เพิ่มกิจกรรมเอง", "status": "เสร็จแล้ว / รอดำเนินการ", "tables": "plot_daily_records · _schedule_completions", "kpi": null, "kind": "task", "span": 1}, {"id": "p9", "lane": "P", "col": 13, "title": "2.11 ติดตามผล (Monitoring)", "status": "เพิ่มการติดตามรายรอบ", "tables": "plot_promoter_monitoring_entries", "kpi": null, "kind": "task", "span": 1}, {"id": "ld2", "lane": "LD", "col": 13, "title": "ติดตามผลดินครั้งถัดไป", "status": "ตามวันนัดติดตาม", "tables": "soil_analysis", "kpi": null, "kind": "task", "span": 1}, {"id": "go3", "lane": "FA", "col": 13, "title": "ไปหน้า 3: ส่งรายงานผลแจ้งโรงงาน", "status": null, "tables": null, "kpi": null, "kind": "link", "span": 1}], "edges": [{"a": "f1", "b": "p1", "text": "คำขอ", "kind": "main"}, {"a": "p1", "b": "f1", "text": "ไม่อนุมัติ + เหตุผล", "kind": "reject"}, {"a": "p1", "b": "p2", "text": "อนุมัติเอกสาร", "kind": "main"}, {"a": "p2", "b": "ld1", "text": "แปลงผ่านตรวจ", "kind": "data"}, {"a": "p2", "b": "p3", "text": "ผ่าน → คำขอ “อนุมัติแล้ว” อัตโนมัติ", "kind": "main"}, {"a": "lab1", "b": "p3", "text": "รหัสต้น → QR หลุม", "kind": "data"}, {"a": "p3", "b": "f2", "text": "LINE: ส่งแบบ", "kind": "main"}, {"a": "f2", "b": "p3", "text": "ไม่อนุมัติ → แก้แบบ", "kind": "reject"}, {"a": "f2", "b": "f3", "text": "อนุมัติแบบ", "kind": "main"}, {"a": "f3", "b": "p4", "text": "คิวทำสัญญา", "kind": "main"}, {"a": "p4", "b": "c1", "text": "แปลงมีสัญญา", "kind": "data"}, {"a": "p4", "b": "f4", "text": "มีเลขที่สัญญา → ปลดล็อกงาน", "kind": "main"}, {"a": "f4", "b": "p5", "text": "ส่งงาน", "kind": "main"}, {"a": "p5", "b": "f4", "text": "ไม่ผ่าน", "kind": "reject"}, {"a": "p5", "b": "f5", "text": "ผ่าน", "kind": "main"}, {"a": "f5", "b": "p6", "text": "คำขอรับกล้า", "kind": "main"}, {"a": "p6", "b": "fa1", "text": "ใบเบิกกล้าไผ่", "kind": "main"}, {"a": "fa1", "b": "fa2", "text": "อนุมัติ", "kind": "main"}, {"a": "fa2", "b": "d1", "text": "รอบส่งกล้า", "kind": "main"}, {"a": "d1", "b": "f6", "text": "กล้าถึงแปลง", "kind": "main"}, {"a": "f6", "b": "p7", "text": "ส่งงาน", "kind": "main"}, {"a": "p7", "b": "fa3", "text": "ข้อมูลหลังปลูก", "kind": "data"}, {"a": "p7", "b": "p8", "text": "ลงปลูกผ่าน", "kind": "main"}, {"a": "p8", "b": "f7", "text": "LINE: แผนกิจกรรม", "kind": "main"}, {"a": "f7", "b": "p8", "text": "แจ้งเตือนนักส่งเสริม", "kind": "notify"}, {"a": "p8", "b": "p9", "text": "", "kind": "main"}, {"a": "p9", "b": "go3", "text": "รายงานผลก่อนตัด", "kind": "main"}], "notes": [{"html": "<b>⚠️ ข้อสังเกต 1</b><br>แปลงประเภท “นักส่งเสริมปลูก” นักส่งเสริมบันทึกงานเตรียมแปลง/ลงปลูกแทนเกษตรกร<br>→ ในข้อมูลต้องแยก “ใครบันทึก” (created_by) ถ้าจะวัดประสิทธิภาพเกษตรกร", "color": "#FFF59D"}, {"html": "<b>⚠️ ข้อสังเกต 2</b><br>รอบ “ส่งกล้า” ใช้ตารางขนส่งชุดเดียวกับรอบ “ตัดไผ่”<br>(factory_cutting_transport_appointment / _item) → KPI ผลผลิตต้องกรองด้วย item_kind", "color": "#FFF59D"}, {"html": "<b>⚠️ ข้อสังเกต 3</b><br>queue_system น่าจะเป็น “คิวที่เกษตรกรจอง” ทั้ง 3 ประเภท (ทำสัญญา/รับกล้า/ตัดไผ่)<br>และเป็นต้นทางของ factory_cutting_queue.farmer_queue_id → ต้องยืนยันกับ dev", "color": "#FFF59D"}]}, {"name": "3-ปลายน้ำ รายงานผล→จ่ายเงิน", "title": "ปลายน้ำ: รายงานผลก่อนตัด → คัดแยกแปลง → วางคิว → ขนส่ง → QC → ชั่ง → ประเมินราคา → จ่ายเงิน (PSL)", "lanes": ["F", "P", "FA", "D", "FIN"], "ncols": 11, "phases": [[0, 4, "คัดเลือกแปลงพร้อมตัด"], [4, 6, "นัดหมาย & ขนส่ง"], [6, 9, "รับซื้อหน้าโรงงาน"], [9, 11, "จ่ายเงินเกษตรกร"]], "nodes": [{"id": "from2", "lane": "P", "col": 0, "title": "จากหน้า 2: ติดตามผล (Monitoring)", "status": null, "tables": null, "kpi": null, "kind": "link", "span": 1}, {"id": "p1", "lane": "P", "col": 1, "title": "2.11 ส่งรายงานผลแจ้งโรงงาน", "status": "บันทึกและส่งรายงาน → แจ้งโรงงานอัตโนมัติ", "tables": "plot_monitoring_pre_reports", "kpi": null, "kind": "task", "span": 1}, {"id": "fa1", "lane": "FA", "col": 2, "title": "3.4 คัดแยกแปลง (ประเมิน 5 หัวข้อ)", "status": "รอประเมิน → ประเมินสำเร็จ · เกรด A/B/C/D", "tables": "factory_plot_assessments", "kpi": "เกรดแปลง", "kind": "task", "span": 1}, {"id": "f1", "lane": "F", "col": 2, "title": "จองคิวตัดไผ่ (ขายผลผลิต)", "status": "จองล่วงหน้า ≥ 1 วัน", "tables": "queue_system", "kpi": null, "kind": "task", "span": 1}, {"id": "p2", "lane": "P", "col": 3, "title": "2.12 อนุมัติคิวตัดของเกษตรกร", "status": "รออนุมัติ → อนุมัติ / ไม่อนุมัติ / นัดใหม่", "tables": "queue_system", "kpi": null, "kind": "task", "span": 1}, {"id": "fa2", "lane": "FA", "col": 3, "title": "3.6 วางคิว: อนุมัติ + เพิ่มวันนัดหมาย", "status": "รออนุมัติ → รอวางคิว → วางคิว", "tables": "factory_cutting_queue", "kpi": "คิวค้าง", "kind": "task", "span": 1}, {"id": "fa3", "lane": "FA", "col": 4, "title": "3.7 นัดหมาย: สร้างรอบขนส่ง", "status": "รอดำเนินการ → รอขนส่ง (ผูกคนขับ + จุดเช็คอิน)", "tables": "factory_cutting_transport_appointment · _item", "kpi": null, "kind": "task", "span": 1}, {"id": "d1", "lane": "D", "col": 5, "title": "3.8 ขนส่ง: Check-in โรงงาน → แปลง → Check-out", "status": "กำลังขนส่ง → ขนส่งสำเร็จ · รายแปลง: ถึงจุดหมาย/เสร็จสิ้น/ข้าม/แจ้งปัญหา", "tables": "_item (check_in/out, weight_tons) · _item_event", "kpi": "lead time · geofence", "kind": "task", "span": 1}, {"id": "fa4", "lane": "FA", "col": 6, "title": "3.9 QC เกณฑ์คุณภาพ 7 ข้อ", "status": "รอตรวจสอบ → บันทึกแล้ว (แก้ไม่ได้)", "tables": "_item.factory_qc_criteria_at · checklist_summary", "kpi": "% ผ่าน QC", "kind": "task", "span": 1}, {"id": "fa5", "lane": "FA", "col": 7, "title": "3.10 ชั่งน้ำหนัก ใบชั่งรวม + รายแปลง", "status": "รอชั่งน้ำหนัก → บันทึกเรียบร้อย", "tables": "appointment.factory_front_summary_weigh_slip · _item.factory_front_weigh_slip (JSON)", "kpi": "ตันเข้าโรงงาน", "kind": "task", "span": 1}, {"id": "fa6", "lane": "FA", "col": 8, "title": "3.11 ประเมินราคา → ส่งข้อมูลให้การเงิน", "status": "รอประเมินราคา → ประเมินเรียบร้อย → ส่งแล้ว (ส่งซ้ำไม่ได้)", "tables": "_item.factory_price_evaluation_form (JSON)", "kpi": "ราคา/ตัน · มูลค่ารับซื้อ", "kind": "task", "span": 1}, {"id": "bank", "lane": "P", "col": 8, "title": "มีเลขบัญชีเกษตรกร?", "status": null, "tables": null, "kpi": null, "kind": "decision", "span": 1}, {"id": "addbank", "lane": "P", "col": 7, "title": "เพิ่มเลขบัญชีเกษตรกร", "status": "นักส่งเสริม / ผู้ดูแลระบบ", "tables": "farmer.bank_account_number", "kpi": "รายการติดเพราะไม่มีบัญชี", "kind": "task", "span": 1}, {"id": "fin1", "lane": "FIN", "col": 9, "title": "PSL: ตรวจสอบ → รอโอน → โอนเรียบร้อย", "status": "อัปเดตกลับเข้าระบบอัตโนมัติ", "tables": "bamboo_finance_payment_queue", "kpi": "ยอดจ่าย · วันจนได้เงิน", "kind": "ext", "span": 1}, {"id": "fa7", "lane": "FA", "col": 10, "title": "3.12 การเงิน (ดูสถานะอย่างเดียว)", "status": "รอตรวจสอบ / รอโอน / โอนเรียบร้อย", "tables": "bamboo_finance_payment_queue", "kpi": "ยอดค้างจ่าย", "kind": "task", "span": 1}, {"id": "f2", "lane": "F", "col": 10, "title": "เกษตรกรได้รับเงิน", "status": null, "tables": null, "kpi": null, "kind": "task", "span": 1}], "edges": [{"a": "from2", "b": "p1", "text": "", "kind": "main"}, {"a": "p1", "b": "fa1", "text": "แจ้งโรงงาน", "kind": "main"}, {"a": "fa1", "b": "fa2", "text": "ส่งต่อวางคิวอัตโนมัติ", "kind": "main"}, {"a": "f1", "b": "p2", "text": "คิวตัด", "kind": "main"}, {"a": "p2", "b": "fa2", "text": "อนุมัติแล้ว", "kind": "main"}, {"a": "fa2", "b": "fa3", "text": "กำหนดวันแล้ว", "kind": "main"}, {"a": "fa3", "b": "d1", "text": "รอบ “รอขนส่ง”", "kind": "main"}, {"a": "d1", "b": "fa4", "text": "ขนส่งสำเร็จ", "kind": "main"}, {"a": "fa4", "b": "fa5", "text": "ผล QC → เกณฑ์หัก", "kind": "main"}, {"a": "fa5", "b": "fa6", "text": "น้ำหนักสุทธิ", "kind": "main"}, {"a": "fa6", "b": "bank", "text": "ตรวจก่อนส่ง", "kind": "main"}, {"a": "bank", "b": "fin1", "text": "มี", "kind": "main"}, {"a": "bank", "b": "addbank", "text": "ไม่มี", "kind": "reject"}, {"a": "addbank", "b": "fa6", "text": "ส่งใหม่", "kind": "reject"}, {"a": "fin1", "b": "fa7", "text": "sync สถานะ", "kind": "data"}, {"a": "fin1", "b": "f2", "text": "โอนเงิน", "kind": "main"}], "notes": [{"html": "<b>⚠️ ข้อมูลรับซื้อเก็บเป็น JSON / text</b><br>ใบชั่ง, เกณฑ์ QC และแบบประเมินราคาอยู่ในคอลัมน์ JSON · น้ำหนักเป็น text<br>→ รายงานยอดรับซื้อ/ราคาต้องแตก JSON ทุกครั้ง แนะนำเพิ่มคอลัมน์ตัวเลข<br>(net_weight_tons, price_per_ton, amount, qc_deduct_pct)", "color": "#FFF59D"}, {"html": "<b>⚠️ สถานะจ่ายเงินมาจาก PSL ทางเดียว</b><br>โรงงานเปลี่ยนสถานะเองไม่ได้ ถ้า sync ขัดข้องรายการจะค้าง “รอตรวจสอบ”<br>→ ควรมี alert เมื่อค้างเกิน SLA และหน้าติดตามรายการ revert", "color": "#FFF59D"}, {"html": "<b>📊 จุดวัด KPI</b><br>ตัวแดงในกล่อง = จุดที่ Executive Dashboard ดึงข้อมูล<br>(ตรงกับ view ใน schema dash ที่ทำไว้)", "color": "#FFEBEE"}]}, {"name": "4-ประเด็นคุยกับ Owner", "title": "ประเด็นจากการเทียบคู่มือ V1.0 กับโครงสร้างฐานข้อมูล (ER) — สำหรับคุยกับ Owner", "lanes": [], "ncols": 1, "phases": null, "nodes": [], "edges": [], "notes": [{"html": "<b style='font-size:13px'>✅ ยืนยันแล้ว: flow ขนส่งชุดใหม่คือของจริง</b><br>เมนู 3.6–3.12 ใช้ factory_cutting_* + bamboo_finance_payment_queue (เชื่อม PSL)<br>ไม่พบเมนูใดในคู่มือที่ใช้ delivery_note / weighing_ticket / qc_inspection / payment_transaction", "color": "#E8F5E9"}, {"html": "<b style='font-size:13px'>❓ ตัดสินใจ: ตารางชุดเก่าจะเลิกใช้ไหม</b><br>delivery_note, weighing_ticket, qc_inspection, payment_transaction, smart_contract, transport_log,<br>plantation / plantation_plan, plot_scoring / plot_evaluation, propagation_batch / propagation_nursery, notification (คู่กับ notifications)<br>→ ขอ owner อนุมัติ freeze / archive เพื่อลดความสับสนในการทำรายงาน", "color": "#FFF8E1"}, {"html": "<b style='font-size:13px'>🔧 แก้ความเข้าใจเดิม: queue_system ยังใช้อยู่</b><br>เป็นคิวที่เกษตรกร/นักส่งเสริมจอง (ทำสัญญา · รับกล้า · ตัดไผ่) และเป็นต้นทางของวางคิวโรงงาน<br>(factory_cutting_queue.farmer_queue_id) — ไม่ใช่ตาราง legacy", "color": "#E3F2FD"}, {"html": "<b style='font-size:13px'>🔧 สัญญาจริงอยู่ plot_contract_entries</b><br>มีสถานะแบบร่าง/ยกเลิก (is_draft, is_cancelled) ตรงกับคู่มือ 2.7 · เลขสัญญาใน transport item เป็น text<br>→ dashboard ต้อง map เลขสัญญากับ plot_contract_entries ไม่ใช่ smart_contract", "color": "#E3F2FD"}, {"html": "<b style='font-size:13px'>⚠️ รอบส่งกล้าและรอบตัดไผ่ใช้ตารางขนส่งเดียวกัน</b><br>ต้องกรองด้วย item_kind / appointment_type ไม่งั้นจำนวนรอบ, ยอดค้างจ่าย และ lead time จะปนกัน", "color": "#FFEBEE"}, {"html": "<b style='font-size:13px'>⚠️ ข้อมูลเงินและน้ำหนักเก็บเป็น JSON / text</b><br>ใบชั่ง, QC 7 ข้อ, แบบประเมินราคา → ขอ dev เพิ่มคอลัมน์ตัวเลขที่ใช้รายงาน (น้ำหนักสุทธิ, ราคา/ตัน, ยอดเงิน, % หัก QC)", "color": "#FFEBEE"}, {"html": "<b style='font-size:13px'>⚠️ ส่งการเงินไม่ได้ถ้าไม่มีเลขบัญชีเกษตรกร</b><br>เป็นคอขวดที่มองไม่เห็นใน dashboard ตอนนี้ → เสนอ KPI “รายการรอส่งการเงินเพราะไม่มีบัญชี”", "color": "#FFEBEE"}, {"html": "<b style='font-size:13px'>❓ คำถาม Owner</b><br>1) เกรดจากคัดแยกแปลง (A–D) มีผลต่อราคารับซื้อหรือลำดับคิวไหม<br>2) Executive Dashboard ต้องรวมงานนักพัฒนาที่ดิน / คาร์บอนเครดิต / แลป ด้วยไหม หรือเริ่มที่ supply chain ก่อน<br>3) SLA ที่ต้องการ: รายงานผล → ตัด กี่วัน, ชั่ง → ได้เงิน กี่วัน<br>4) แปลง “นักส่งเสริมปลูก” ต้องแยกรายงานจาก “เกษตรกรปลูกเอง” ไหม", "color": "#F3E5F5"}, {"html": "<b style='font-size:13px'>📝 จุดที่คู่มือควรแก้ (เล็กน้อย)</b><br>• “คำแนะนำการใช้คู่มือ” อ้าง FAQ = ส่วนที่ 8 และภาคผนวก = ส่วนที่ 9 แต่สารบัญจริงคือส่วนที่ 7 และ 8<br>• ตาราง 1.2 ใช้ชื่อ “แลป” แต่ส่วนที่ 6 ใช้ “เพาะพันธุ์” / หัวข้อส่วนที่ 5 ระบุ (carbon_credit) แต่ครอบคลุม 2 role<br>• เลขหัวข้อย่อยซ้ำ (เช่น 4.1, 4.2 ภายใต้ 2.3 และ 3.x ภายใต้ 3.14) ทำให้อ้างอิงยาก", "color": "#ECEFF1"}]}, {"name": "5-To-Be PMO", "title": "To-Be", "lanes": ["F", "SYS", "P", "FA", "D", "FIN"], "ncols": 10, "phases": [[0, 1, "สมัคร & ตรวจแปลง"], [1, 3, "นัดทำสัญญา"], [3, 5, "เตรียมแปลง: กล้า + ปุ๋ย"], [5, 6, "ดูแลรายวัน"], [6, 8, "เก็บเกี่ยว"], [8, 10, "รับซื้อ & จ่ายเงิน"]], "nodes": [{"id": "f1", "lane": "F", "col": 0, "title": "สมัครเข้าร่วมโครงการ", "status": "เหมือนเดิม", "tables": "registrations · land_plot", "kpi": null, "tag": null, "nr": [], "why": null, "kind": "task", "span": 1}, {"id": "p1", "lane": "P", "col": 0, "title": "อนุมัติคำขอ → ตรวจพื้นที่ → ออกแบบแผนแปลง", "status": "เหมือนเดิม (เกษตรกรยืนยันแบบแปลงใน LINE อยู่แล้ว)", "tables": "plot_inspections · plot_plans", "kpi": null, "tag": null, "nr": [], "why": null, "kind": "task", "span": 1}, {"id": "f2r", "lane": "F", "col": 1, "title": "จองคิวทำสัญญา", "status": "ตัดออก: เจ้าหน้าที่เป็นผู้เสนอนัดแทน", "tables": null, "kpi": null, "tag": "removed", "nr": ["NR-01"], "why": null, "kind": "task", "span": 1}, {"id": "p2", "lane": "P", "col": 1, "title": "เสนอวัน-เวลานัดทำสัญญา", "status": "proposed → รอเกษตรกรยืนยัน", "tables": "queue_system (+proposed_by, farmer_response)", "kpi": null, "tag": "changed", "nr": ["NR-01"], "why": "เดิมเกษตรกรต้องเข้าเมนูจองคิวเอง เปลี่ยนเป็นนักส่งเสริมเสนอนัดจากปฏิทินของตน แล้วระบบส่งให้เกษตรกรกดยืนยัน", "kind": "task", "span": 1}, {"id": "s1", "lane": "SYS", "col": 1, "title": "LINE OA: ขอยืนยันนัดทำสัญญา", "status": "ปุ่ม ยืนยัน / ขอเลื่อน · เตือนซ้ำถ้าไม่ตอบ", "tables": "line_message_log", "kpi": null, "tag": "new", "nr": ["NR-01"], "why": "ข้อความแบบ Flex/Quick reply มีปุ่มตอบในตัว ไม่ต้องเปิดเมนูหรือกรอกฟอร์ม", "kind": "task", "span": 1}, {"id": "f2", "lane": "F", "col": 2, "title": "กด “ยืนยัน” ใน LINE", "status": "ยืนยัน / ขอเลื่อน / ไม่สะดวก", "tables": "queue_system.farmer_response", "kpi": "% ยืนยันใน 24 ชม.", "tag": "changed", "nr": ["NR-01"], "why": null, "kind": "task", "span": 1}, {"id": "p3", "lane": "P", "col": 2, "title": "ทำสัญญา", "status": "เหมือนเดิม: รอดำเนินการ → ทำสัญญาเรียบร้อย", "tables": "plot_contract_entries", "kpi": null, "tag": null, "nr": [], "why": null, "kind": "task", "span": 1}, {"id": "s2", "lane": "SYS", "col": 2, "title": "คำนวณรายได้คาดการณ์ต่อสัญญา", "status": "คำนวณใหม่เมื่อ: ทำสัญญา · ลงปลูกผ่าน · ติดตามผล · รับซื้อจริง", "tables": "contract_revenue_estimate · variety_yield_curve · price_reference", "kpi": "รายได้คาดการณ์ vs จริง", "tag": "new", "nr": ["NR-02"], "why": "ใช้สูตรในส่วน NR-02 ด้านล่าง ผลลัพธ์แสดงเป็นช่วงต่ำ–สูง และหักค่าปุ๋ยที่ลงทุนให้ (NR-04)", "kind": "task", "span": 1}, {"id": "p4", "lane": "P", "col": 3, "title": "วางแผนกล้า + ปุ๋ยต่อแปลง", "status": "กำหนดชนิด ปริมาณ และรอบส่ง", "tables": "plot_input_plan (ใหม่) · ตารางปุ๋ยพอร์ทัลสิ่งแวดล้อม", "kpi": null, "tag": "new", "nr": ["NR-04", "NR-01"], "why": "แทนการให้เกษตรกรจองคิวรับกล้าและลงนามผู้เบิกเอง นักส่งเสริมเป็นผู้ออกใบเบิกจากแผน", "kind": "task", "span": 1}, {"id": "f3r", "lane": "F", "col": 3, "title": "จองคิวรับกล้า + ลงนามผู้เบิก", "status": "ตัดออก: ใช้การกดยืนยันใน LINE แทน", "tables": null, "kpi": null, "tag": "removed", "nr": ["NR-01"], "why": null, "kind": "task", "span": 1}, {"id": "s3", "lane": "SYS", "col": 3, "title": "LINE OA: ขอยืนยันรับกล้า + ปุ๋ย", "status": "แสดงมูลค่าปุ๋ยที่จะหักตอนขาย", "tables": "line_message_log", "kpi": null, "tag": "new", "nr": ["NR-01", "NR-04"], "why": null, "kind": "task", "span": 1}, {"id": "p5r", "lane": "P", "col": 4, "title": "อนุมัติคิวรับกล้าที่เกษตรกรจอง", "status": "ตัดออก: ไม่มีคิวจากเกษตรกรให้อนุมัติ", "tables": null, "kpi": null, "tag": "removed", "nr": ["NR-01"], "why": null, "kind": "task", "span": 1}, {"id": "f3", "lane": "F", "col": 4, "title": "ยืนยันรับกล้า + ปุ๋ย ใน LINE", "status": "ยืนยัน = รับทราบมูลค่าปุ๋ยที่จะหักตอนขาย", "tables": "farmer_input_ledger.acknowledged_at", "kpi": null, "tag": "changed", "nr": ["NR-01", "NR-04"], "why": "การกดยืนยันต้องเก็บเป็นหลักฐานการรับทราบยอดลงทุน (เวลา ช่องทาง ข้อความที่แสดง)", "kind": "task", "span": 1}, {"id": "fa1", "lane": "FA", "col": 4, "title": "จ่ายกล้า + ปุ๋ยจากคลัง → วางคิว → รอบส่ง", "status": "ปุ๋ยไปพร้อมรอบส่งกล้าได้", "tables": "factory_cutting_queue · input_issue (ใหม่)", "kpi": null, "tag": "changed", "nr": ["NR-04"], "why": null, "kind": "task", "span": 1}, {"id": "s4", "lane": "SYS", "col": 4, "title": "ลงบัญชีปัจจัยการผลิตต่อสัญญา", "status": "ยอดลงทุนคงค้าง (ราคาล็อก ณ วันจ่าย)", "tables": "farmer_input_ledger", "kpi": "ยอดปุ๋ยลงทุนคงค้าง", "tag": "new", "nr": ["NR-04"], "why": null, "kind": "task", "span": 1}, {"id": "d1", "lane": "D", "col": 4, "title": "ส่งกล้า + ปุ๋ยถึงแปลง", "status": "ลายเซ็นผู้รับ (เหมือนเดิม) + รายการปุ๋ย", "tables": "_appointment_item", "kpi": null, "tag": "changed", "nr": ["NR-04"], "why": null, "kind": "task", "span": 1}, {"id": "s5", "lane": "SYS", "col": 5, "title": "แจ้งเตือนรายวัน (เช้า)", "status": "งานวันนี้ · เตือนบันทึกค้าง · อากาศ/PM2.5 · ความรู้สั้น · รายได้คาดการณ์", "tables": "notification_schedule · line_message_log", "kpi": "อัตราเปิดอ่าน", "tag": "new", "nr": ["NR-03", "NR-02"], "why": null, "kind": "task", "span": 1}, {"id": "f4", "lane": "F", "col": 5, "title": "บันทึกประจำวันใน LINE (1–2 แตะ)", "status": "ตอบจากปุ่มในข้อความ ไม่ต้องเปิดเมนู", "tables": "plot_daily_records", "kpi": "% บันทึกรายวัน · DAU/WAU", "tag": "changed", "nr": ["NR-03"], "why": "ลดขั้นตอนให้เหลือการแตะตอบ เพื่อให้เกษตรกรใช้งานทุกวัน", "kind": "task", "span": 1}, {"id": "p6", "lane": "P", "col": 5, "title": "ติดตามผล + ดูคะแนนการใช้งานเกษตรกร", "status": "รายชื่อเกษตรกรที่ไม่ตอบ/ไม่บันทึก เพื่อโทรตาม", "tables": "farmer_engagement_daily (ใหม่)", "kpi": null, "tag": "changed", "nr": ["NR-03"], "why": null, "kind": "task", "span": 1}, {"id": "fa2", "lane": "FA", "col": 6, "title": "คัดแยกแปลง → เสนอวันตัด", "status": "เกรด A–D แล้วเสนอวันจากปฏิทินโรงงาน", "tables": "factory_plot_assessments · factory_cutting_queue", "kpi": null, "tag": "changed", "nr": ["NR-01"], "why": null, "kind": "task", "span": 1}, {"id": "f5r", "lane": "F", "col": 6, "title": "จองคิวตัดไผ่", "status": "ตัดออก: โรงงานเสนอวันตัดแทน", "tables": null, "kpi": null, "tag": "removed", "nr": ["NR-01"], "why": null, "kind": "task", "span": 1}, {"id": "p7r", "lane": "P", "col": 6, "title": "อนุมัติคิวตัดของเกษตรกร", "status": "ตัดออก", "tables": null, "kpi": null, "tag": "removed", "nr": ["NR-01"], "why": null, "kind": "task", "span": 1}, {"id": "s6", "lane": "SYS", "col": 6, "title": "LINE OA: ขอยืนยันวันตัด", "status": "ยืนยัน / ขอเลื่อน", "tables": "line_message_log", "kpi": null, "tag": "new", "nr": ["NR-01"], "why": null, "kind": "task", "span": 1}, {"id": "f5", "lane": "F", "col": 7, "title": "ยืนยันวันตัดใน LINE", "status": "", "tables": "queue_system.farmer_response", "kpi": null, "tag": "changed", "nr": ["NR-01"], "why": null, "kind": "task", "span": 1}, {"id": "fa3", "lane": "FA", "col": 7, "title": "วางคิว → นัดหมาย → รอบขนส่ง", "status": "เหมือนเดิม", "tables": "factory_cutting_transport_appointment", "kpi": null, "tag": null, "nr": [], "why": null, "kind": "task", "span": 1}, {"id": "d2", "lane": "D", "col": 7, "title": "ขนส่งตัดไผ่ Check-in / Check-out", "status": "เหมือนเดิม", "tables": "_appointment_item", "kpi": null, "tag": null, "nr": [], "why": null, "kind": "task", "span": 1}, {"id": "fa4", "lane": "FA", "col": 8, "title": "QC → ชั่ง → ประเมินราคา − หักค่าปุ๋ย", "status": "บรรทัดใหม่ “ค่าดำเนินการ (ปุ๋ย)” ในแบบประเมินราคา", "tables": "_item.price_evaluation · input_deduction (ใหม่)", "kpi": "ยอดหักต่อรอบ", "tag": "changed", "nr": ["NR-04"], "why": "ยอดหักมาจากบัญชีปัจจัยการผลิตของสัญญานั้น โดยมีเพดานต่อรอบตามนโยบายที่ต้องตัดสินใจ", "kind": "task", "span": 1}, {"id": "s7", "lane": "SYS", "col": 8, "title": "คำนวณยอดหักรอบนี้", "status": "min(ยอดคงค้าง, เพดาน % ของยอดขาย)", "tables": "input_deduction", "kpi": null, "tag": "new", "nr": ["NR-04"], "why": null, "kind": "task", "span": 1}, {"id": "fin", "lane": "FIN", "col": 9, "title": "PSL จ่ายยอดสุทธิ", "status": "payload เพิ่มรายการหัก · โอนเรียบร้อย", "tables": "bamboo_finance_payment_queue (+deductions)", "kpi": "ยอดจ่ายสุทธิ", "tag": "changed", "nr": ["NR-04"], "why": null, "kind": "ext", "span": 1}, {"id": "f6", "lane": "F", "col": 9, "title": "ใบแจ้งยอดใน LINE", "status": "ขายได้ − ค่าปุ๋ย = รับสุทธิ · ยอดปุ๋ยคงเหลือ", "tables": "line_message_log", "kpi": null, "tag": "new", "nr": ["NR-03", "NR-04"], "why": null, "kind": "task", "span": 1}, {"id": "s8", "lane": "SYS", "col": 9, "title": "อัปเดตรายได้จริง vs คาดการณ์", "status": "แทนปีที่ขายแล้วด้วยยอดจริง แล้วคาดการณ์ปีที่เหลือใหม่", "tables": "contract_revenue_estimate", "kpi": null, "tag": "new", "nr": ["NR-02"], "why": null, "kind": "task", "span": 1}], "edges": [{"a": "f1", "b": "p1", "text": "คำขอ", "kind": "main"}, {"a": "p1", "b": "p2", "text": "แบบแปลงอนุมัติ", "kind": "main"}, {"a": "p2", "b": "s1", "text": "เสนอนัด", "kind": "data"}, {"a": "s1", "b": "f2", "text": "LINE OA", "kind": "notify"}, {"a": "f2", "b": "p3", "text": "ยืนยันแล้ว", "kind": "main"}, {"a": "p3", "b": "s2", "text": "สัญญา + แผนแปลง", "kind": "data"}, {"a": "p3", "b": "p4", "text": "", "kind": "main"}, {"a": "p4", "b": "s3", "text": "ใบเบิก", "kind": "data"}, {"a": "s3", "b": "f3", "text": "LINE OA", "kind": "notify"}, {"a": "f3", "b": "fa1", "text": "ยืนยันรับ", "kind": "main"}, {"a": "fa1", "b": "d1", "text": "รอบส่ง", "kind": "main"}, {"a": "fa1", "b": "s4", "text": "มูลค่าปุ๋ยที่จ่าย", "kind": "data"}, {"a": "d1", "b": "f4", "text": "ลงปลูก → ดูแล", "kind": "main"}, {"a": "s5", "b": "f4", "text": "ทุกเช้า", "kind": "notify"}, {"a": "f4", "b": "p6", "text": "บันทึก", "kind": "main"}, {"a": "f4", "b": "s2", "text": "อัตรารอด → ปรับประมาณการ", "kind": "data"}, {"a": "s2", "b": "s5", "text": "รายได้คาดการณ์", "kind": "data"}, {"a": "p6", "b": "fa2", "text": "รายงานผลก่อนตัด", "kind": "main"}, {"a": "fa2", "b": "s6", "text": "เสนอวันตัด", "kind": "data"}, {"a": "s6", "b": "f5", "text": "LINE OA", "kind": "notify"}, {"a": "f5", "b": "fa3", "text": "ยืนยันแล้ว", "kind": "main"}, {"a": "fa3", "b": "d2", "text": "", "kind": "main"}, {"a": "d2", "b": "fa4", "text": "ขนส่งสำเร็จ", "kind": "main"}, {"a": "s4", "b": "s7", "text": "ยอดคงค้าง", "kind": "data"}, {"a": "s7", "b": "fa4", "text": "ยอดหัก", "kind": "data"}, {"a": "fa4", "b": "fin", "text": "ส่งการเงิน", "kind": "main"}, {"a": "fin", "b": "f6", "text": "โอน + ใบแจ้งยอด", "kind": "main"}, {"a": "fin", "b": "s8", "text": "ยอดจริง", "kind": "data"}], "notes": [], "nr": {"NR-01": {"short": "เกษตรกร Approve อย่างเดียวผ่าน LINE OA", "pmo": "ลดการจอง ปรับ process ให้เกษตรกร Approve อย่างเดียว จาก noti LINE OA"}, "NR-02": {"short": "ประมาณการรายได้ต่อสัญญาอัตโนมัติ", "pmo": "หาสูตรในการ estimate รายได้ให้กับแต่ละสัญญาอัตโนมัติ"}, "NR-03": {"short": "แจ้งเตือนรายวัน + ส่งเสริมการใช้งาน", "pmo": "เพิ่ม noti รายวัน และส่งเสริมการเข้าใช้งานของเกษตรกรให้ใช้งานตลอด"}, "NR-04": {"short": "ลงทุนปุ๋ยให้ก่อน หักเป็นค่าดำเนินการตอนรับซื้อ", "pmo": "ปุ๋ยใช้ของเราที่จะเข้าไปลงทุนให้ก่อน และคิดค่าใช้จ่ายโดยตัดเป็นค่าดำเนินการตอนที่รับซื้อผลผลิต"}}}];
+const ROLES = {"F": ["เกษตรกร\n(LINE)", "#E8F5E9", "#2E7D32"], "P": ["นักส่งเสริม\n(promoter)", "#E3F2FD", "#1565C0"], "LD": ["นักพัฒนาที่ดิน\n(land_developer)", "#FFF8E1", "#F9A825"], "LAB": ["แลป / เพาะพันธุ์\n(breeding)", "#F3E5F5", "#7B1FA2"], "FA": ["โรงงาน\n(เจ้าของ/พนักงาน)", "#FFF3E0", "#E65100"], "D": ["คนขับรถ\n(driver)", "#FBE9E7", "#BF360C"], "FIN": ["การเงิน PSL\n(ระบบภายนอก)", "#ECEFF1", "#455A64"], "C": ["คาร์บอน / สิ่งแวดล้อม\n(carbon_credit*)", "#E0F2F1", "#00695C"], "AD": ["ผู้ดูแลระบบ\n(admin)", "#FAFAFA", "#616161"], "SYS": ["ระบบอัตโนมัติ\n(LINE OA / Engine)", "#E8EAF6", "#3949AB"]};
+const ISSUE_GROUPS = [{"h": "สิ่งที่ยืนยันแล้วจากคู่มือ", "c": "var(--r-F)", "items": [{"t": "Flow ขนส่งชุดใหม่คือของที่ใช้งานจริง", "d": "เมนูโรงงาน 3.6–3.12 ใช้ <code>factory_cutting_*</code> และ <code>bamboo_finance_payment_queue</code> ที่เชื่อมกับ PSL ไม่พบเมนูใดในคู่มือที่ใช้ <code>delivery_note</code>, <code>weighing_ticket</code>, <code>qc_inspection</code> หรือ <code>payment_transaction</code>"}, {"t": "งานหลังทำสัญญาเป็นลำดับบังคับ", "d": "ต้องมีเลขที่สัญญา → ขุดหลุมและระบบน้ำผ่านการตรวจ → ลงปลูกผ่านการตรวจ → จึงบันทึกกิจกรรมประจำวันได้ ฝั่งโรงงานก็เช่นกัน เมนูถัดไปจะมีรายการเมื่อทำเมนูก่อนหน้าเสร็จแล้ว"}]}, {"h": "ต้องให้ Owner ตัดสินใจ", "c": "var(--r-LD)", "items": [{"t": "ตารางชุดเก่าจะเลิกใช้หรือไม่", "d": "<code>delivery_note</code>, <code>weighing_ticket</code>, <code>qc_inspection</code>, <code>payment_transaction</code>, <code>smart_contract</code>, <code>transport_log</code>, <code>plantation</code> / <code>plantation_plan</code>, <code>plot_scoring</code> / <code>plot_evaluation</code>, <code>propagation_batch</code> / <code>propagation_nursery</code> และ <code>notification</code> ที่ซ้ำกับ <code>notifications</code> เสนอให้ freeze หรือ archive เพื่อไม่ให้รายงานดึงข้อมูลผิดชุด"}, {"t": "คำถามสำหรับการทำ Executive Dashboard", "d": "1) เกรดจากคัดแยกแปลง (A–D) มีผลต่อราคารับซื้อหรือลำดับคิวไหม<br>2) รอบแรกต้องรวมงานนักพัฒนาที่ดิน คาร์บอนเครดิต และแลปด้วยไหม หรือเริ่มจาก supply chain ก่อน<br>3) SLA ที่ต้องการ: ส่งรายงานผลจนถึงวันตัดกี่วัน และชั่งน้ำหนักจนเกษตรกรได้เงินกี่วัน<br>4) แปลงประเภท “นักส่งเสริมปลูก” ต้องแยกรายงานจาก “เกษตรกรปลูกเอง” ไหม"}]}, {"h": "แก้ความเข้าใจเดิม", "c": "var(--r-P)", "items": [{"t": "queue_system ยังใช้งานอยู่", "d": "เป็นคิวที่เกษตรกรหรือนักส่งเสริมจองแทน ทั้ง 3 ประเภท (ทำสัญญา รับกล้า ตัดไผ่) และน่าจะเป็นต้นทางของ <code>factory_cutting_queue.farmer_queue_id</code> ไม่ใช่ตาราง legacy ตามที่เข้าใจก่อนหน้า (ต้องให้ dev ยืนยัน)"}, {"t": "สัญญาจริงอยู่ที่ plot_contract_entries", "d": "มีสถานะแบบร่างและยกเลิก (<code>is_draft</code>, <code>is_cancelled</code>) ตรงกับเมนู 2.7 ส่วนเลขสัญญาในรอบขนส่งเก็บเป็น text จึงต้อง map กับตารางนี้ ไม่ใช่ <code>smart_contract</code> (SQL ของ dashboard แก้แล้ว)"}]}, {"h": "ความเสี่ยงด้านข้อมูล", "c": "var(--warn)", "items": [{"t": "รอบส่งกล้าและรอบตัดไผ่ใช้ตารางขนส่งเดียวกัน", "d": "ถ้าไม่แยกด้วย <code>item_kind</code> / <code>appointment_type</code> จำนวนรอบ ยอดค้างจ่าย และ lead time จะปนกัน (SQL ของ dashboard เพิ่ม <code>is_seedling</code> แล้ว)"}, {"t": "ข้อมูลเงินและน้ำหนักเก็บเป็น JSON หรือ text", "d": "ใบชั่ง, เกณฑ์ QC 7 ข้อ และแบบประเมินราคา อยู่ในคอลัมน์ JSON ส่วนน้ำหนักเป็น text ขอให้ dev เพิ่มคอลัมน์ตัวเลขสำหรับรายงาน ได้แก่ น้ำหนักสุทธิ ราคาต่อตัน ยอดเงิน และ % หัก QC"}, {"t": "ส่งการเงินไม่ได้ถ้าไม่มีเลขบัญชีเกษตรกร", "d": "เป็นคอขวดที่ยังมองไม่เห็นในรายงาน เสนอ KPI “รายการรอส่งการเงินเพราะไม่มีบัญชี”"}, {"t": "สถานะจ่ายเงินมาจาก PSL ทางเดียว", "d": "โรงงานเปลี่ยนสถานะเองไม่ได้ ถ้าการ sync ขัดข้อง รายการจะค้างที่ “รอตรวจสอบ” โดยไม่มีใครเห็น ควรมี alert เมื่อค้างเกิน SLA"}]}, {"h": "จุดที่คู่มือควรแก้", "c": "var(--r-FIN)", "items": [{"t": "เลขส่วนอ้างอิงไม่ตรงสารบัญ", "d": "“คำแนะนำการใช้คู่มือ” อ้างว่า FAQ อยู่ส่วนที่ 8 และภาคผนวกอยู่ส่วนที่ 9 แต่สารบัญจริงคือส่วนที่ 7 และ 8"}, {"t": "ชื่อบทบาทไม่สม่ำเสมอ", "d": "ตาราง 1.2 ใช้ชื่อ “แลป” แต่ส่วนที่ 6 ใช้ “เพาะพันธุ์” และหัวข้อส่วนที่ 5 ระบุ (carbon_credit) ทั้งที่ครอบคลุม 2 บทบาท"}, {"t": "เลขหัวข้อย่อยซ้ำ", "d": "เช่น 4.1, 4.2 ภายใต้ 2.3 และ 3.x ภายใต้ 3.14 ทำให้อ้างอิงข้ามทีมยาก"}]}];
+const PMO = {"top": "\n<h2>ข้อเสนอจาก PMO → New Requirements และ Flow ใหม่ (To-Be)</h2>\n<p class=\"lede\">สรุปความเห็น 4 ข้อจาก PMO เป็น requirement แล้วปรับแผนผังให้เห็นว่าขั้นตอนไหนเพิ่ม ปรับ หรือตัดออก\nกล่องที่มีกรอบเหลืองคือจุดที่เปลี่ยน กดแต่ละข้อด้านล่างเพื่อไฮไลต์เฉพาะขั้นตอนของข้อนั้น รายละเอียดและคำถามที่ต้องตัดสินใจอยู่ใต้แผนผัง</p>\n", "bottom": "<h2>รายละเอียด New Requirements</h2><section class=\"spec\" id=\"spec-NR-01\"><header><span class=\"code\">NR-01</span><h3>เกษตรกร Approve อย่างเดียวผ่าน LINE OA (ยกเลิกการจองคิวฝั่งเกษตรกร)</h3></header>\n<div class=\"pmoq\">PMO: “ลดการจอง ปรับ process ให้เกษตรกร Approve อย่างเดียว จาก noti LINE OA”</div><dl><dt>ความต้องการ</dt><dd>เปลี่ยนจาก “เกษตรกรจองคิว → เจ้าหน้าที่อนุมัติ” เป็น “เจ้าหน้าที่เสนอนัด → เกษตรกรกดยืนยันจากข้อความ LINE OA” โดยเกษตรกรไม่ต้องเปิดเมนูหรือกรอกฟอร์ม</dd><dt>ขั้นตอนที่เปลี่ยน</dt><dd><ul><li><b>นัดทำสัญญา:</b> นักส่งเสริมเสนอวัน-เวลา → LINE OA → เกษตรกรกดยืนยัน / ขอเลื่อน</li><li><b>รับกล้าพันธุ์ (+ ปุ๋ยตาม NR-04):</b> นักส่งเสริมออกใบเบิกจากแผนแปลง → เกษตรกรกดยืนยันรับ</li><li><b>ตัดไผ่:</b> โรงงานเสนอวันตัดหลังคัดแยกแปลง → เกษตรกรกดยืนยัน</li><li>การยืนยันแบบแผนแปลงเป็นแบบกดอนุมัติอยู่แล้ว คงไว้ตามเดิม</li></ul></dd><dt>ขั้นตอนที่ตัดออก</dt><dd><ul><li>เกษตรกรจองคิว 3 ประเภท (ทำสัญญา · รับกล้า · ตัดไผ่)</li><li>นักส่งเสริมอนุมัติคิวที่เกษตรกรจอง (เมนู 2.12 ส่วนอนุมัติ)</li><li>เกษตรกรลงนามผู้เบิกตอนจองคิวรับกล้า</li></ul></dd><dt>ข้อมูลที่ต้องเพิ่ม</dt><dd><ul><li><code>queue_system</code>: <code>proposed_by</code>, <code>proposed_at</code>, <code>farmer_response</code> (approved / reschedule / declined / expired), <code>responded_at</code>, <code>response_channel</code></li><li>ตารางใหม่ <code>line_message_log</code>: ข้อความที่ส่ง, template, สถานะส่ง/อ่าน/กด, อ้างอิงคิว</li></ul></dd><dt>ต้องตัดสินใจ</dt><dd><ul><li>ไม่ตอบภายในกี่ชั่วโมงจึงเตือนซ้ำ และเมื่อไรให้นักส่งเสริมโทรตาม</li><li>ขอเลื่อนได้กี่ครั้ง และใครเป็นผู้เสนอวันใหม่</li><li>การกดยืนยันใน LINE ใช้แทนลายเซ็นผู้เบิกเดิมได้หรือไม่ (ยังมีลายเซ็นผู้รับตอนส่งของ) ควรให้ฝ่ายกฎหมาย/บัญชียืนยัน</li><li>เกษตรกรที่ยังไม่เชื่อม LINE จะใช้ช่องทางไหน (นักส่งเสริมกดยืนยันแทนพร้อมแนบหลักฐาน?)</li></ul></dd><dt>KPI ใหม่</dt><dd>% ยืนยันภายใน 24 ชม. · เวลาเฉลี่ยตอบ · จำนวนขอเลื่อนต่อนัด</dd></dl></section><section class=\"spec\" id=\"spec-NR-02\"><header><span class=\"code\">NR-02</span><h3>ประมาณการรายได้ต่อสัญญาอัตโนมัติ</h3></header>\n<div class=\"pmoq\">PMO: “หาสูตรในการ estimate รายได้ให้กับแต่ละสัญญาอัตโนมัติ”</div><dl><dt>ความต้องการ</dt><dd>ทุกสัญญามีตัวเลขรายได้คาดการณ์ทั้งสัญญาและรายปี คำนวณเองโดยระบบ และปรับใหม่เมื่อมีข้อมูลจริงเข้ามา</dd><dt>สูตรที่เสนอ</dt><dd><div class=\"formula\">\n ผลผลิตปีที่ t (ตัน) = <var>A</var> × <var>D</var> × <var>S</var> × <var>Y</var> × <var>r(t)</var><br>\n รายได้ปีที่ t = ผลผลิตปีที่ t × <var>P</var> × <var>G</var> × (1 − <var>q</var>)<br>\n รายได้คาดการณ์ทั้งสัญญา = Σ รายได้ปีที่ t &nbsp;&nbsp;·&nbsp;&nbsp; รับสุทธิของเกษตรกร = รายได้ทั้งสัญญา − ค่าปุ๋ยที่หัก (NR-04)\n </div><ul><li><var>A</var> พื้นที่ (ไร่) จากสัญญา/แปลง · <var>D</var> จำนวนกอต่อไร่ จากแผนแปลง (<code>plot_plans</code>, จำนวน QR หลุม)</li><li><var>S</var> อัตรารอด จากผลตรวจลงปลูกและการติดตาม (<code>plot_planting_records</code>)</li><li><var>Y</var> ผลผลิตเต็มที่ (ตัน/กอ/ปี) ตามสายพันธุ์ และ <var>r(t)</var> สัดส่วนผลผลิตตามอายุกอ → ตารางใหม่ <code>variety_yield_curve</code> ต้องได้ค่าจากทีมวิชาการ/แลป</li><li><var>P</var> ราคาต่อตัน ตามสัญญา หรือ <code>price_reference</code> · <var>G</var> ตัวคูณเกรดจากคัดแยกแปลง (ก่อนประเมินใช้ 1.0) · <var>q</var> % หัก QC เฉลี่ยจากประวัติรับซื้อ</li><li>ปีที่รับซื้อจริงแล้ว ให้แทนค่าด้วยยอดจริง แล้วคาดการณ์เฉพาะปีที่เหลือ (re-forecast)</li></ul></dd><dt>คำนวณใหม่เมื่อ</dt><dd>ทำสัญญาเสร็จ · ตรวจลงปลูกผ่าน · บันทึกติดตามผลแต่ละรอบ · รับซื้อและจ่ายเงินแล้ว</dd><dt>ข้อมูลที่ต้องเพิ่ม</dt><dd><ul><li><code>variety_yield_curve</code> (variety_id, age_year, yield_ton_per_clump)</li><li><code>price_reference</code> (grade, effective_from, price_per_ton)</li><li><code>contract_revenue_estimate</code> (contract_entry_id, computed_at, inputs_json, est_total, est_low, est_high, by_year_json) เก็บเป็น snapshot ทุกครั้งที่คำนวณ เพื่อย้อนดูได้ว่าตัวเลขเปลี่ยนเพราะอะไร</li></ul></dd><dt>ต้องตัดสินใจ</dt><dd><ul><li>สัญญากำหนดราคาตายตัว หรืออิงราคาตลาด/ราคาอ้างอิง</li><li>ผลผลิตเริ่มปีที่เท่าไร และเต็มที่ปีที่เท่าไร ต่อสายพันธุ์</li><li>จะแสดงตัวเลขให้เกษตรกรเห็นหรือไม่ ถ้าแสดง ควรแสดงเป็นช่วงต่ำ–สูง และระบุชัดว่าเป็นประมาณการ ไม่ใช่การรับประกันรายได้</li></ul></dd><dt>KPI ใหม่</dt><dd>รายได้คาดการณ์รวมทั้งพอร์ต · ความคลาดเคลื่อนคาดการณ์ vs จริง (%) ต่อปี</dd></dl></section><div class=\"calc\" id=\"calc\"><h4>ลองสูตร NR-02 + NR-04</h4>\n<p class=\"warn\">ตัวเลขตั้งต้นทั้งหมดเป็นค่าสมมติเพื่อทดลองสูตรเท่านั้น ต้องแทนด้วยค่าจริงจากสัญญาและทีมวิชาการก่อนใช้</p>\n<div class=\"ins\">\n<label>พื้นที่ A (ไร่)<input id=\"cA\" type=\"number\" step=\"0.5\" value=\"10\"></label>\n<label>กอต่อไร่ D<input id=\"cD\" type=\"number\" value=\"80\"></label>\n<label>อัตรารอด S (%)<input id=\"cS\" type=\"number\" value=\"85\"></label>\n<label>ผลผลิตเต็มที่ Y (ตัน/กอ/ปี)<input id=\"cY\" type=\"number\" step=\"0.01\" value=\"0.05\"></label>\n<label>เริ่มเก็บเกี่ยวปีที่<input id=\"cStart\" type=\"number\" value=\"3\"></label>\n<label>ให้ผลเต็มที่ปีที่<input id=\"cFull\" type=\"number\" value=\"5\"></label>\n<label>อายุสัญญา (ปี)<input id=\"cYears\" type=\"number\" value=\"10\"></label>\n<label>ราคา P (บาท/ตัน)<input id=\"cP\" type=\"number\" value=\"1200\"></label>\n<label>ตัวคูณเกรด G<input id=\"cG\" type=\"number\" step=\"0.05\" value=\"1\"></label>\n<label>หัก QC เฉลี่ย q (%)<input id=\"cQ\" type=\"number\" value=\"5\"></label>\n<label>ช่วงความไม่แน่นอน ± (%)<input id=\"cU\" type=\"number\" value=\"20\"></label>\n<label>ค่าปุ๋ยที่ลงทุนให้ (บาท) — NR-04<input id=\"cF\" type=\"number\" value=\"15000\"></label>\n<label>เพดานหักต่อปี (% ของยอดขาย) — NR-04<input id=\"cCap\" type=\"number\" value=\"30\"></label>\n</div>\n<div class=\"out\">\n<div>รายได้คาดการณ์ทั้งสัญญา<b id=\"oTot\"></b></div>\n<div>ช่วงต่ำ–สูง<b id=\"oRange\"></b></div>\n<div>ผลผลิตรวม<b id=\"oTons\"></b></div>\n<div>หักค่าปุ๋ยได้<b id=\"oDed\"></b></div>\n<div>ค่าปุ๋ยคงค้างเมื่อจบสัญญา<b id=\"oBal\"></b></div>\n<div>เกษตรกรรับสุทธิ<b id=\"oNet\"></b></div>\n</div>\n<div class=\"tw\"><table><thead><tr><th>ปี</th><th>r(t)</th><th>ผลผลิต (ตัน)</th><th>รายได้ก่อนหัก</th><th>หลังหัก QC</th><th>หักค่าปุ๋ย</th><th>เกษตรกรรับ</th></tr></thead><tbody id=\"cRows\"></tbody></table></div>\n</div><section class=\"spec\" id=\"spec-NR-03\"><header><span class=\"code\">NR-03</span><h3>แจ้งเตือนรายวัน + ส่งเสริมให้เกษตรกรใช้งานต่อเนื่อง</h3></header>\n<div class=\"pmoq\">PMO: “เพิ่ม noti รายวัน และส่งเสริมการเข้าใช้งานของเกษตรกรให้ใช้งานตลอด”</div><dl><dt>ความต้องการ</dt><dd>ส่งข้อความ LINE OA ทุกวันที่มีเนื้อหามีประโยชน์กับเกษตรกรรายนั้น และทำให้การบันทึกประจำวันใช้เวลาไม่กี่วินาที</dd><dt>เนื้อหาข้อความรายวัน</dt><dd><ul><li>งานวันนี้ตามแผนกิจกรรมของแปลง (จาก <code>plot_daily_activity_designs</code>)</li><li>เตือนงานที่ยังไม่บันทึก</li><li>อากาศ / PM2.5 รายจังหวัด (มีข้อมูลในพอร์ทัลสิ่งแวดล้อม)</li><li>ความรู้สั้น 1 เรื่องจากคลังความรู้ชุมชน</li><li>รายได้คาดการณ์ล่าสุดของสัญญา (NR-02) และยอดปุ๋ยคงค้าง (NR-04)</li></ul></dd><dt>กลไกส่งเสริมการใช้งาน</dt><dd><ul><li>บันทึกประจำวันด้วยปุ่มตอบในข้อความ (quick reply) 1–2 แตะ</li><li>นับวันต่อเนื่องที่บันทึก (streak) และแสดงระดับ</li><li>ให้นักส่งเสริมเห็นรายชื่อเกษตรกรที่เงียบเกิน N วัน เพื่อโทรตาม</li><li>สิทธิประโยชน์ที่ผูกกับการใช้งาน (เช่น ลำดับรับปุ๋ย) — ต้องให้ owner ตัดสิน</li></ul></dd><dt>ข้อมูลที่ต้องเพิ่ม</dt><dd><ul><li><code>notification_schedule</code> (เวลาส่ง ความถี่ ต่อเกษตรกร)</li><li><code>line_message_log</code> (ใช้ร่วมกับ NR-01)</li><li><code>farmer_engagement_daily</code> (date, farmer_id, sent, opened, clicked, recorded, streak)</li></ul></dd><dt>ต้องตัดสินใจ</dt><dd><ul><li>ค่าใช้จ่าย LINE OA: push รายวัน × จำนวนเกษตรกร × 30 วัน กินโควตาข้อความของแพ็กเกจ ต้องเทียบกับแพ็กเกจที่ใช้อยู่ก่อนเปิดใช้ทั้งหมด</li><li>เวลาส่ง และให้เกษตรกรลดความถี่หรือปิดได้</li><li>ถ้าไม่มีงานวันนั้น ยังส่งหรือไม่ (ส่งทุกวันเสี่ยงให้เกษตรกรบล็อก OA)</li></ul></dd><dt>KPI ใหม่</dt><dd>เกษตรกรที่ใช้งานรายวัน/รายสัปดาห์ (DAU/WAU) · % บันทึกประจำวัน · อัตราเปิดอ่านและกดตอบ · จำนวนบล็อก OA</dd></dl></section><section class=\"spec\" id=\"spec-NR-04\"><header><span class=\"code\">NR-04</span><h3>ลงทุนปุ๋ยให้ก่อน แล้วหักเป็นค่าดำเนินการตอนรับซื้อ</h3></header>\n<div class=\"pmoq\">PMO: “ปุ๋ยใช้ของเราที่จะเข้าไปลงทุนให้ก่อน และคิดค่าใช้จ่ายโดยตัดเป็นค่าดำเนินการตอนที่รับซื้อผลผลิต”</div><dl><dt>ความต้องการ</dt><dd>บริษัทจ่ายปุ๋ยให้เกษตรกรก่อน ระบบเก็บยอดลงทุนต่อสัญญา และหักคืนอัตโนมัติจากยอดรับซื้อในแต่ละรอบ</dd><dt>Flow</dt><dd><ul><li>นักส่งเสริมวางแผนปุ๋ยต่อแปลง (อ้างชนิดปุ๋ยและตารางปุ๋ยจากพอร์ทัลสิ่งแวดล้อม)</li><li>เกษตรกรกดยืนยันรับใน LINE พร้อมเห็นมูลค่าที่จะหัก (ใช้กลไก NR-01)</li><li>คลัง/โรงงานจ่ายปุ๋ย ส่งพร้อมรอบส่งกล้าหรือรอบส่งปุ๋ย → ระบบลงบัญชีปัจจัยการผลิตของสัญญา (ล็อกราคา ณ วันจ่าย)</li><li>ตอนประเมินราคา ระบบคำนวณยอดหักรอบนี้ = min(ยอดคงค้าง, เพดาน % ของยอดขาย) แล้วใส่เป็นบรรทัด “ค่าดำเนินการ (ปุ๋ย)”</li><li>ส่ง PSL เป็นยอดสุทธิพร้อมรายการหัก และส่งใบแจ้งยอดให้เกษตรกรใน LINE</li></ul></dd><dt>ข้อมูลที่ต้องเพิ่ม</dt><dd><ul><li><code>plot_input_plan</code> (แผนปุ๋ย/กล้าต่อแปลง)</li><li><code>input_issue</code> (การจ่ายจากคลัง ผูกรอบขนส่ง)</li><li><code>farmer_input_ledger</code> (contract_entry_id, item, qty, unit_cost, amount, issued_at, acknowledged_at)</li><li><code>input_deduction</code> (transport item ↔ ledger, amount) และเพิ่มรายการหักใน payload ของ <code>bamboo_finance_payment_queue</code></li></ul></dd><dt>ต้องตัดสินใจ</dt><dd><ul><li>หักเต็มจำนวนในรอบแรก หรือมีเพดาน % ต่อรอบ</li><li>มีดอกเบี้ยหรือค่าธรรมเนียมหรือไม่</li><li>ถ้าผลผลิตไม่พอหัก สัญญาถูกยกเลิก หรือเสียหายจากภัยธรรมชาติ จะจัดการยอดคงค้างอย่างไร</li><li>ต้องเพิ่มเงื่อนไขในแม่แบบสัญญา ควรให้ฝ่ายกฎหมายตรวจ และให้ฝ่ายบัญชียืนยันการบันทึกรายการหักและภาษี</li><li>PSL ต้องรองรับรายการหักใน payload และใบสำคัญจ่าย</li></ul></dd><dt>KPI ใหม่</dt><dd>มูลค่าปุ๋ยลงทุนคงค้าง · % เรียกคืนได้ · ยอดหักต่อรอบ · ต้นทุนปุ๋ยต่อตันผลผลิต</dd></dl></section><section class=\"spec\"><header><h3>ผลกระทบต่องานที่ทำไว้แล้ว</h3></header>\n<ul class=\"impact\">\n<li><b>Executive Dashboard (schema <code>dash</code>):</b> เพิ่ม KPI 4 กลุ่มข้างต้น และเพิ่มคอลัมน์ <code>deduction_amount</code> ใน fact รับซื้อ เพื่อแยกยอดขายก่อนหักกับยอดจ่ายสุทธิ</li>\n<li><b>NR-01 กับ NR-03 ใช้ช่องทาง LINE OA เดียวกัน</b> ควรทำ <code>line_message_log</code> และ template กลางครั้งเดียว แล้วใช้ร่วมกัน</li>\n<li><b>NR-02 ต้องรู้ยอดหักจาก NR-04</b> จึงควรทำบัญชีปัจจัยการผลิตก่อนหรือพร้อมกับสูตรประมาณการ</li>\n<li><b>คู่มือผู้ใช้:</b> เมนู 2.12 (จองคิว) และขั้นตอนจองคิวของเกษตรกรต้องเขียนใหม่ เมนู 3.11 (ประเมินราคา) ต้องเพิ่มบรรทัดหักค่าปุ๋ย</li>\n</ul></section>"};
+const COLW = {0:250,1:220,2:210};
+const LABEL_W = 150;
+const $ = s => document.querySelector(s);
+const el = (t, a={}, ...kids) => { const e=document.createElement(t); for (const [k,v] of Object.entries(a)) { if(k==='class') e.className=v; else if(k==='style') e.style.cssText=v; else if(k.startsWith('on')) e.addEventListener(k.slice(2),v); else e.setAttribute(k,v);} kids.flat().forEach(c=>e.append(c)); return e; };
+const roleVar = k => `var(--r-${k})`;
+const roleName = k => ROLES[k][0].split('\n')[0];
+const roleSub = k => (ROLES[k][0].split('\n')[1]||'');
+const TAB_NAMES = ['ภาพรวม 6 เฟส','ต้นน้ำ: สมัคร → ดูแลแปลง','ปลายน้ำ: รายงานผล → จ่ายเงิน','ประเด็นคุยกับ Owner','ข้อเสนอ PMO (To-Be)'];
+const NT = TAB_NAMES.length;
+
+let cur = 0, focusRoles = new Set(), focusNR = new Set(), selected = null;
+
+// ---------- tabs ----------
+TAB_NAMES.forEach((n,i)=>{
+  const b = el('button',{role:'tab','aria-selected':i===0?'true':'false',id:'tab'+i,onclick:()=>show(i)}, n);
+  $('#tabs').append(b);
+});
+$('#tabs').addEventListener('keydown',e=>{
+  if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;
+  const n = (cur + (e.key==='ArrowRight'?1:-1) + NT) % NT; show(n); $('#tab'+n).focus();
+});
+
+function show(i){
+  cur=i; focusRoles.clear(); focusNR.clear(); closeDrawer();
+  document.querySelectorAll('#tabs button').forEach((b,j)=>b.setAttribute('aria-selected', j===i?'true':'false'));
+  const isIssues = i===3, isPMO = i===4;
+  $('#diagramView').hidden = isIssues; $('#issuesView').hidden = !isIssues;
+  $('#pmoTop').hidden = !isPMO; $('#pmoBottom').hidden = !isPMO; $('#tRemovedWrap').hidden = !isPMO;
+  if(isPMO) renderPMO();
+  if(isIssues) renderIssues(); else renderDiagram(MODEL[i], i);
+  try{ localStorage.setItem('bamboo-flow-tab', String(i)); }catch(e){}
+}
+
+// ---------- diagram ----------
+function renderDiagram(pg, idx){
+  const grid = $('#grid'); grid.innerHTML=''; grid.className='grid';
+  const colw = COLW[idx] ?? 210;
+  grid.style.gridTemplateColumns = `${LABEL_W}px repeat(${pg.ncols}, ${colw}px)`;
+  const laneRow = k => pg.lanes.indexOf(k) + 2;
+  grid.append(el('div',{class:'corner',style:'grid-column:1;grid-row:1'}));
+  (pg.phases||[]).forEach(([c0,c1,t],i,arr)=>{
+    grid.append(el('div',{class:'phase'+(i===arr.length-1?' last':''),style:`grid-column:${c0+2} / ${c1+2};grid-row:1`}, t));
+  });
+  pg.lanes.forEach(k=>{
+    const r = laneRow(k);
+    grid.append(el('div',{class:'lane-bg',style:`grid-column:2 / -1;grid-row:${r};--c:${roleVar(k)}`}));
+    grid.append(el('div',{class:'lane-label',style:`grid-row:${r};grid-column:1;--c:${roleVar(k)}`}, el('div',{}, roleName(k), el('small',{}, roleSub(k)))));
+  });
+  pg.nodes.forEach(n=>{
+    const kids=[el('b',{}, n.title)];
+    if(n.status) kids.push(el('span',{class:'st'}, n.status));
+    if(n.tables) kids.push(el('span',{class:'tb code'}, n.tables));
+    if(n.kpi) kids.push(el('span',{class:'kpi'}, '📊 '+n.kpi));
+    if(n.tag) kids.push(el('span',{class:'badge'}, {new:'ใหม่',changed:'ปรับ',removed:'ตัดออก'}[n.tag]));
+    if(n.nr && n.nr.length) kids.push(el('span',{}, ...n.nr.map(c=>el('span',{class:'nr'},c))));
+    const b = el('button',{class:'node '+(n.kind||'task')+(n.tag?' tag-'+n.tag:''),'data-nr':(n.nr||[]).join(' '),'data-id':n.id,'data-lane':n.lane,
+      style:`grid-row:${laneRow(n.lane)};grid-column:${n.col+2} / span ${n.span||1};--c:${roleVar(n.lane)}`,
+      'aria-label':`${roleName(n.lane)}: ${n.title}`, onclick:()=>openNode(n.id)}, ...kids);
+    grid.append(b);
+  });
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('class','wires'); svg.id='wires';
+  grid.append(svg);
+  // chips
+  const chips = $('#roleChips'); chips.innerHTML='';
+  pg.lanes.forEach(k=>{
+    chips.append(el('button',{class:'chip','aria-pressed':'false',style:`--c:${roleVar(k)}`,onclick:e=>toggleRole(k,e.currentTarget)}, el('i'), roleName(k)));
+  });
+  if(pg.nr){
+    Object.keys(pg.nr).forEach(c=>chips.append(el('button',{class:'chip nrchip','aria-pressed':'false','data-nr':c,onclick:e=>toggleNR(c)}, c+' · '+pg.nr[c].short)));
+  }
+  // notes
+  const notes = $('#notes'); notes.innerHTML='';
+  pg.notes.forEach(nt=>{ const d=el('div',{class:'note'}); d.innerHTML = nt.html; notes.append(d); });
+  applyToggles();
+  requestAnimationFrame(()=>{ drawWires(); applyFocus(); });
+}
+
+function rectOf(node, gridBox){
+  const r = node.getBoundingClientRect();
+  if(node.classList.contains('decision')){ // visual diamond is narrower
+    const cx=r.left+r.width/2, cy=r.top+r.height/2, w=r.width*0.72, h=r.height*0.92;
+    return {l:cx-w/2-gridBox.left, t:cy-h/2-gridBox.top, r:cx+w/2-gridBox.left, b:cy+h/2-gridBox.top};
+  }
+  return {l:r.left-gridBox.left, t:r.top-gridBox.top, r:r.right-gridBox.left, b:r.bottom-gridBox.top};
+}
+function segHits(p,q,R){ // axis aligned segment vs rect (inflated)
+  const m=5, x1=Math.min(p[0],q[0]), x2=Math.max(p[0],q[0]), y1=Math.min(p[1],q[1]), y2=Math.max(p[1],q[1]);
+  return !(x2 < R.l-m || x1 > R.r+m || y2 < R.t-m || y1 > R.b+m);
+}
+function cost(pts, rects){
+  let c=0;
+  for(let i=0;i<pts.length-1;i++) for(const R of rects) if(segHits(pts[i],pts[i+1],R)) c+=10;
+  return c + (pts.length-2)*0.5;
+}
+function drawWires(){
+  const pg = MODEL[cur]; if(!pg || cur===3) return;
+  const grid=$('#grid'), svg=$('#wires'); const gb=grid.getBoundingClientRect();
+  svg.setAttribute('width', grid.scrollWidth); svg.setAttribute('height', grid.scrollHeight);
+  svg.innerHTML = `<defs>
+    ${['main','reject','data','notify'].map(k=>`<marker id="m-${k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 ${k==='main'?'Z':''}" fill="${k==='main'?'var(--ink)':'none'}" stroke="${ {main:'var(--ink)',reject:'var(--warn)',data:'var(--data)',notify:'var(--notify)'}[k]}" stroke-width="1.6"/></marker>`).join('')}
+  </defs>`;
+  const nodes={}; grid.querySelectorAll('.node').forEach(n=>nodes[n.dataset.id]=rectOf(n,gb));
+  const laneBounds = {}; grid.querySelectorAll('.lane-bg').forEach((l,i)=>{const r=l.getBoundingClientRect(); laneBounds[pg.lanes[i]]={t:r.top-gb.top,b:r.bottom-gb.top};});
+  const byId = Object.fromEntries(pg.nodes.map(n=>[n.id,n]));
+  const color = {main:'var(--ink)',reject:'var(--warn)',data:'var(--data)',notify:'var(--notify)'};
+  const dash = {main:'',reject:'6 4',data:'2 4',notify:'6 4'};
+  const usedChannels = {};
+  pg.edges.forEach((e,ei)=>{
+    const A=nodes[e.a], B=nodes[e.b]; if(!A||!B) return;
+    const others = Object.entries(nodes).filter(([k])=>k!==e.a&&k!==e.b).map(([,v])=>v);
+    const pair = pg.edges.some(o=>o.a===e.b&&o.b===e.a) ? (e.a<e.b?-11:11) : 0;
+    const acx=(A.l+A.r)/2+pair, acy=(A.t+A.b)/2+pair, bcx=(B.l+B.r)/2+pair, bcy=(B.t+B.b)/2+pair;
+    const cands=[];
+    const g=14;
+    if(B.l > A.r - 4){ // forward
+      const sx=A.r, sy=acy, ex=B.l, ey=bcy;
+      if(Math.abs(sy-ey)<3) cands.push([[sx,sy],[ex,ey]]);
+      cands.push([[sx,sy],[ex-g,sy],[ex-g,ey],[ex,ey]]);
+      cands.push([[sx,sy],[sx+g,sy],[sx+g,ey],[ex,ey]]);
+      cands.push([[sx,sy],[(sx+ex)/2,sy],[(sx+ex)/2,ey],[ex,ey]]);
+    }
+    if(Math.abs(acx-bcx) < 30){ // same column vertical
+      if(bcy>acy) cands.push([[acx,A.b],[acx,(A.b+B.t)/2],[bcx,(A.b+B.t)/2],[bcx,B.t]]);
+      else cands.push([[acx,A.t],[acx,(A.t+B.b)/2],[bcx,(A.t+B.b)/2],[bcx,B.b]]);
+    }
+    // channel routes (via lane boundaries)
+    const la=laneBounds[byId[e.a].lane], lb=laneBounds[byId[e.b].lane];
+    const down = bcy > acy + 3, up = bcy < acy - 3;
+    const off = ((usedChannels[e.a]=(usedChannels[e.a]||0)+1)-1)*6;
+    const ax1 = acx + (e.kind==='main'?0:(bcx<acx?-18:18));
+    const bx1 = bcx + (e.kind==='main'?0:(bcx<acx?18:-18));
+    if(down){ const cy=la.b-8-off; cands.push([[ax1,A.b],[ax1,cy],[bx1,cy],[bx1,B.t]]); const cy2=lb.t+8+off; cands.push([[ax1,A.b],[ax1,cy2],[bx1,cy2],[bx1,B.t]]); }
+    else if(up){ const cy=la.t+8+off; cands.push([[ax1,A.t],[ax1,cy],[bx1,cy],[bx1,B.b]]); const cy2=lb.b-8-off; cands.push([[ax1,A.t],[ax1,cy2],[bx1,cy2],[bx1,B.b]]); }
+    else { const cy=la.b-8-off; cands.push([[ax1,A.b],[ax1,cy],[bx1,cy],[bx1,B.b]]); const cy2=la.t+8+off; cands.push([[ax1,A.t],[ax1,cy2],[bx1,cy2],[bx1,B.t]]); }
+    // side detours (enter target from the side) — used when straight routes cut through other boxes
+    const side=[[[A.r,acy],[A.r+g,acy],[A.r+g,bcy],[B.r,bcy]], [[A.l,acy],[A.l-g,acy],[A.l-g,bcy],[B.l,bcy]],
+                [[A.r,acy],[Math.max(A.r,B.r)+g,acy],[Math.max(A.r,B.r)+g,bcy],[B.r,bcy]]];
+    let best=cands[0], bc=Infinity;
+    cands.forEach(c=>{const k=cost(c,others); if(k<bc){bc=k;best=c;}});
+    side.forEach(c=>{const k=cost(c,others)+3; if(k<bc){bc=k;best=c;}});
+    // rounded path
+    let d=`M${best[0][0]},${best[0][1]}`;
+    for(let i=1;i<best.length;i++){
+      const [x,y]=best[i];
+      if(i<best.length-1){ const [px,py]=best[i-1],[nx,ny]=best[i+1];
+        const r=Math.min(8,Math.hypot(x-px,y-py)/2,Math.hypot(nx-x,ny-y)/2);
+        const ux=(x-px)/(Math.hypot(x-px,y-py)||1), uy=(y-py)/(Math.hypot(x-px,y-py)||1);
+        const vx=(nx-x)/(Math.hypot(nx-x,ny-y)||1), vy=(ny-y)/(Math.hypot(nx-x,ny-y)||1);
+        d+=` L${x-ux*r},${y-uy*r} Q${x},${y} ${x+vx*r},${y+vy*r}`;
+      } else d+=` L${x},${y}`;
+    }
+    const gEl=document.createElementNS('http://www.w3.org/2000/svg','g'); gEl.setAttribute('class','w'); gEl.dataset.a=e.a; gEl.dataset.b=e.b;
+    const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d',d); p.setAttribute('stroke',color[e.kind]); p.setAttribute('stroke-width', e.kind==='main'?2:1.6);
+    if(dash[e.kind]) p.setAttribute('stroke-dasharray',dash[e.kind]); p.setAttribute('marker-end',`url(#m-${e.kind})`);
+    gEl.append(p);
+    const tip=document.createElementNS('http://www.w3.org/2000/svg','title'); tip.textContent=e.text||''; p.append(tip);
+    if(e.text){
+      let li=0,ll=-1; for(let i=0;i<best.length-1;i++){const L=Math.hypot(best[i+1][0]-best[i][0],best[i+1][1]-best[i][1]); if(L>ll){ll=L;li=i;}}
+      const mx=(best[li][0]+best[li+1][0])/2, my=(best[li][1]+best[li+1][1])/2;
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x',mx); t.setAttribute('y',my + (best[li][1]===best[li+1][1]? -5: 4));
+      if(best[li][1]===best[li+1][1]) t.setAttribute('text-anchor','middle');
+      else if(pair<0){ t.setAttribute('text-anchor','end'); t.setAttribute('x',mx-5); }
+      else { t.setAttribute('text-anchor','start'); t.setAttribute('x',mx+5); }
+      t.setAttribute('class','lbl'); t.setAttribute('fill',color[e.kind]); t.textContent=e.text;
+      const horiz = best[li][1]===best[li+1][1];
+      const need = e.text.length*6.2 + 12;           // rough width of the label
+      if(!horiz || ll >= need) gEl.append(t);         // too short a gap: label lives in tooltip + side panel
+    }
+    svg.append(gEl);
+  });
+}
+
+// ---------- focus ----------
+function toggleRole(k, btn){
+  if(focusRoles.has(k)) focusRoles.delete(k); else focusRoles.add(k);
+  btn.setAttribute('aria-pressed', focusRoles.has(k)?'true':'false');
+  selected=null; applyFocus();
+}
+function toggleNR(c){
+  if(focusNR.has(c)) focusNR.delete(c); else focusNR.add(c);
+  document.querySelectorAll('[data-nr="'+c+'"].nrchip, .nrsum[data-nr="'+c+'"]').forEach(b=>b.setAttribute('aria-pressed', focusNR.has(c)?'true':'false'));
+  selected=null; applyFocus();
+}
+function applyFocus(){
+  const grid=$('#grid'); const pg=MODEL[cur];
+  grid.querySelectorAll('.node').forEach(n=>n.classList.remove('on','sel'));
+  grid.querySelectorAll('.w').forEach(w=>w.classList.remove('on'));
+  if(selected){
+    grid.classList.add('dim');
+    const on=new Set([selected]);
+    pg.edges.forEach(e=>{ if(e.a===selected||e.b===selected){ on.add(e.a); on.add(e.b);} });
+    grid.querySelectorAll('.node').forEach(n=>{ if(on.has(n.dataset.id)) n.classList.add('on'); if(n.dataset.id===selected) n.classList.add('sel'); });
+    grid.querySelectorAll('.w').forEach(w=>{ if(w.dataset.a===selected||w.dataset.b===selected) w.classList.add('on'); });
+  } else if(focusNR.size){
+    grid.classList.add('dim');
+    const hit = new Set(pg.nodes.filter(n=>(n.nr||[]).some(c=>focusNR.has(c))).map(n=>n.id));
+    grid.querySelectorAll('.node').forEach(n=>{ if(hit.has(n.dataset.id)) n.classList.add('on'); });
+    grid.querySelectorAll('.w').forEach(w=>{ if(hit.has(w.dataset.a)&&hit.has(w.dataset.b)) w.classList.add('on'); });
+  } else if(focusRoles.size){
+    grid.classList.add('dim');
+    const lane = Object.fromEntries(pg.nodes.map(n=>[n.id,n.lane]));
+    grid.querySelectorAll('.node').forEach(n=>{ if(focusRoles.has(n.dataset.lane)) n.classList.add('on'); });
+    grid.querySelectorAll('.w').forEach(w=>{ if(focusRoles.has(lane[w.dataset.a])||focusRoles.has(lane[w.dataset.b])) w.classList.add('on'); });
+  } else grid.classList.remove('dim');
+}
+
+// ---------- drawer ----------
+function openNode(id){
+  const pg=MODEL[cur]; const n=pg.nodes.find(x=>x.id===id); if(!n) return;
+  selected=id; applyFocus();
+  const by=Object.fromEntries(pg.nodes.map(x=>[x.id,x]));
+  $('#drawer').style.setProperty('--c', roleVar(n.lane));
+  $('#dRole').textContent = roleName(n.lane); $('#dTitle').textContent = n.title;
+  const body=$('#dBody'); body.innerHTML='';
+  if(n.tag){ body.append(el('h4',{},'สถานะใน To-Be'), el('div',{class:'steps'}, el('span',{style:'background:var(--hl);color:var(--hl-ink);border-color:var(--hl)'}, {new:'ขั้นตอนใหม่',changed:'ปรับจากเดิม',removed:'ตัดออก'}[n.tag]),
+      ...(n.nr||[]).map(c=>el('span',{}, c+' · '+(pg.nr&&pg.nr[c]?pg.nr[c].short:''))))); }
+  if(n.why){ body.append(el('h4',{},'เปลี่ยนอะไร / ทำไม'), el('div',{style:'font-size:14px'}, n.why)); }
+  if(n.status){ body.append(el('h4',{},'สถานะในระบบ'));
+    const st=el('div',{class:'steps'}); n.status.split(/\s*→\s*/).forEach((s,i)=>{ if(i) st.append(el('em',{},'→')); st.append(el('span',{},s)); }); body.append(st); }
+  if(n.tables){ body.append(el('h4',{},'ตารางในฐานข้อมูล (อนุมาน)'));
+    const tb=el('div',{class:'tbls'}); n.tables.split(/\s*·\s*/).forEach(t=>tb.append(el('code',{},t))); body.append(tb); }
+  if(n.kpi){ body.append(el('h4',{},'ใช้วัด KPI บน Executive Dashboard'), el('div',{class:'kpibox'},'📊 '+n.kpi)); }
+  const ins=pg.edges.filter(e=>e.b===id), outs=pg.edges.filter(e=>e.a===id);
+  const kindTxt={main:'ลำดับงาน',reject:'ส่งกลับ / ไม่ผ่าน',data:'ส่งต่อข้อมูล',notify:'แจ้งเตือน'};
+  const list=(arr,key)=>{ const ul=el('ul',{class:'flowlist'}); arr.forEach(e=>{ const o=by[e[key]]; if(!o) return;
+      ul.append(el('li',{}, el('button',{onclick:()=>openNode(o.id)}, `${roleName(o.lane)}: ${o.title}`, el('small',{}, `${kindTxt[e.kind]}${e.text?' · '+e.text:''}`)))); }); return ul; };
+  if(ins.length){ body.append(el('h4',{},'รับงาน/ข้อมูลจาก'), list(ins,'a')); }
+  if(outs.length){ body.append(el('h4',{},'ส่งต่อไปที่'), list(outs,'b')); }
+  body.append(el('div',{class:'caveat'},'ชื่อตารางจับคู่จากชื่อและความสัมพันธ์ใน ER diagram · สถานะอ้างอิงคู่มือเจ้าหน้าที่ V1.0'));
+  $('#drawer').classList.add('open'); $('#drawer').setAttribute('aria-hidden','false'); $('#scrim').classList.add('open');
+  $('#dClose').focus();
+}
+function closeDrawer(){
+  const wasOpen = $('#drawer').classList.contains('open');
+  $('#drawer').classList.remove('open'); $('#drawer').setAttribute('aria-hidden','true'); $('#scrim').classList.remove('open');
+  if(selected){ const s=selected; selected=null; applyFocus(); if(wasOpen){ const b=document.querySelector(`.node[data-id="${s}"]`); b&&b.focus(); } }
+}
+$('#dClose').onclick=closeDrawer; $('#scrim').onclick=closeDrawer;
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDrawer(); });
+
+// ---------- toggles ----------
+function applyToggles(){
+  const g=$('#grid');
+  g.classList.toggle('hide-status', !$('#tStatus').checked);
+  g.classList.toggle('hide-tables', !$('#tTables').checked);
+  g.classList.toggle('hide-labels', !$('#tLabels').checked);
+  g.classList.toggle('hide-removed', !$('#tRemoved').checked);
+}
+['#tStatus','#tTables','#tLabels','#tRemoved'].forEach(s=>$(s).addEventListener('change',()=>{ applyToggles(); requestAnimationFrame(()=>{drawWires();applyFocus();}); }));
+let rz; window.addEventListener('resize',()=>{ clearTimeout(rz); rz=setTimeout(()=>{drawWires();applyFocus();},120); });
+if(document.fonts) document.fonts.ready.then(()=>{ drawWires(); applyFocus(); });
+
+// ---------- issues ----------
+function renderIssues(){
+  const box=$('#issues'); if(box.childElementCount) return;
+  ISSUE_GROUPS.forEach(g=>{
+    box.append(el('h2',{}, g.h));
+    g.items.forEach(it=>{ const d=el('div'); d.innerHTML=it.d;
+      box.append(el('div',{class:'issue',style:`--k:${g.c}`}, el('h3',{}, it.t), d)); });
+  });
+}
+
+// ---------- PMO ----------
+function renderPMO(){
+  const pg = MODEL[4];
+  const top=$('#pmoTop');
+  if(!top.childElementCount){
+    top.innerHTML = PMO.top;
+    const grid=el('div',{class:'nrgrid'});
+    Object.entries(pg.nr).forEach(([c,v])=>{
+      const ns=pg.nodes.filter(n=>(n.nr||[]).includes(c));
+      const cnt={new:0,changed:0,removed:0}; ns.forEach(n=>n.tag&&cnt[n.tag]++);
+      grid.append(el('button',{class:'nrsum','aria-pressed':'false','data-nr':c,onclick:()=>{toggleNR(c); $('#stage').scrollIntoView({behavior:'smooth',block:'start'});}},
+        el('span',{class:'code'},c), el('h3',{},v.short), el('q',{},v.pmo),
+        el('span',{class:'cnt'}, `ใหม่ ${cnt.new} · ปรับ ${cnt.changed} · ตัดออก ${cnt.removed} ขั้นตอน — กดเพื่อไฮไลต์ในแผนผัง`)));
+    });
+    top.append(grid);
+    const lg=el('div',{class:'taglegend',style:'margin-top:14px'});
+    lg.innerHTML='<span><i class="n"></i>ขั้นตอนใหม่</span><span><i class="c"></i>ปรับจากเดิม</span><span><i class="r"></i>ตัดออก</span><span>กล่องไม่มีป้าย = เหมือนเดิม</span>';
+    top.append(lg);
+  }
+  const bot=$('#pmoBottom');
+  if(!bot.childElementCount){ bot.innerHTML = PMO.bottom; bindCalc(); }
+}
+const fmt = (x,d=0)=> (isFinite(x)?x:0).toLocaleString('th-TH',{maximumFractionDigits:d,minimumFractionDigits:d});
+function bindCalc(){
+  const ids=['cA','cD','cS','cY','cStart','cFull','cYears','cP','cG','cQ','cU','cF','cCap'];
+  const get=id=>parseFloat(document.getElementById(id).value)||0;
+  const run=()=>{
+    const A=get('cA'),D=get('cD'),S=get('cS')/100,Y=get('cY'),st=Math.max(1,Math.round(get('cStart'))),fu=Math.max(st,Math.round(get('cFull'))),
+          T=Math.max(1,Math.min(40,Math.round(get('cYears')))),P=get('cP'),G=get('cG'),q=get('cQ')/100,U=get('cU')/100,F=get('cF'),cap=get('cCap')/100;
+    let rows='', tot=0, totTons=0, bal=F, totDed=0;
+    for(let t=1;t<=T;t++){
+      const r = t<st?0:Math.min(1,(t-st+1)/(fu-st+1));
+      const tons = A*D*S*Y*r; const gross = tons*P*G; const net = gross*(1-q);
+      const ded = Math.min(bal, net*cap); bal-=ded; totDed+=ded; tot+=net; totTons+=tons;
+      rows+=`<tr><td>ปีที่ ${t}</td><td>${fmt(r*100)}%</td><td>${fmt(tons,1)}</td><td>${fmt(gross)}</td><td>${fmt(net)}</td><td>${fmt(ded)}</td><td>${fmt(net-ded)}</td></tr>`;
+    }
+    document.getElementById('cRows').innerHTML=rows;
+    document.getElementById('oTot').textContent=fmt(tot)+' บาท';
+    document.getElementById('oRange').textContent=fmt(tot*(1-U))+' – '+fmt(tot*(1+U))+' บาท';
+    document.getElementById('oTons').textContent=fmt(totTons,1)+' ตัน';
+    document.getElementById('oDed').textContent=fmt(totDed)+' บาท';
+    document.getElementById('oBal').textContent=fmt(bal)+' บาท';
+    document.getElementById('oNet').textContent=fmt(tot-totDed)+' บาท';
+  };
+  ids.forEach(i=>document.getElementById(i).addEventListener('input',run)); run();
+}
+
+let start=0; try{ const s=parseInt(localStorage.getItem('bamboo-flow-tab')||'0',10); if(s>=0&&s<NT) start=s; }catch(e){}
+show(start);
+</script>
+</body>
+</html>
